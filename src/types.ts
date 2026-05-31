@@ -1,3 +1,4 @@
+// FPM Application Type Definitions
 export interface UserOnboarding {
   name: string;
   country: string;
