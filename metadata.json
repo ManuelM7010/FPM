@@ -1,0 +1,6 @@
+{
+  "name": "FPM Financial Planner",
+  "description": "Plataforma interactiva de planificación, simulación y forecast financiero personal con soporte para múltiples tarjetas de crédito, fechas de corte y simulación de escenarios por mes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
