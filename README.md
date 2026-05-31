@@ -1,4 +1,4 @@
-# 🌟 AUREA Financial Intelligence • Plataforma de Planificación y Simulación Financiera
+# 🌟 Aurea Financial Intelligence • Plataforma de Planificación y Simulación Financiera
 
 Aurea es un sistema cognitivo de planificación, simulación y forecast financiero personal impulsado por Inteligencia Artificial (Gemini 3.5-Flash). Combina paneles interactivos de Business Intelligence, calendarios automatizados de flujo de caja diario, simulación de escenarios ("What-if") y un asistente de análisis con conocimiento integral del estado patrimonial del usuario.
 
