@@ -132,13 +132,14 @@ Llena los campos solicitados con los siguientes parámetros:
 | **Region** | Sólido (e.g., `Oregon` o `Frankfurt`) |
 | **Branch** | `main` |
 | **Build Command** | `npm install && npm run build` |
-| **Start Command** | `npm run start` |
+| **Start Command** | `npm run start` (ejecuta de forma ultra-rápida `node dist/server.cjs`) |
 
 ### Paso 4: Carga las Variables de Entorno (Environment Variables)
 En la sección **Secret Files / Environment Variables** de Render, añade lo siguiente:
 
 *   `GEMINI_API_KEY`: Tu clave de Google AI Studio / Gemini API.
 *   `NODE_ENV`: `production`
+*   `NODE_VERSION`: `20.11.0` *(CRÍTICO: Obliga a Render a usar una versión moderna de Node.js, previniendo fallos al compilar o arrancar).*
 
 ---
 
