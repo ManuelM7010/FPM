@@ -1,6 +1,6 @@
-# 🌟 Aurea Financial Intelligence • Plataforma de Planificación y Simulación Financiera
+# 🌟 Financial Planner • Plataforma de Planificación y Simulación Financiera
 
-Aurea es un sistema cognitivo de planificación, simulación y forecast financiero personal impulsado por Inteligencia Artificial (Gemini 3.5-Flash). Combina paneles interactivos de Business Intelligence, calendarios automatizados de flujo de caja diario, simulación de escenarios ("What-if") y un asistente de análisis con conocimiento integral del estado patrimonial del usuario.
+Financial Planner es un sistema cognitivo de planificación, simulación y forecast financiero personal impulsado por Inteligencia Artificial (Gemini 3.5-Flash). Combina paneles interactivos de Business Intelligence, calendarios automatizados de flujo de caja diario, simulación de escenarios ("What-if") y un asistente de análisis con conocimiento integral del estado patrimonial del usuario.
 
 ---
 
@@ -35,7 +35,7 @@ Si vas a escalar la solución para soporte multiusuario con base de datos durade
 ### Script de Creación SQL (PostgreSQL compatible con Render DB)
 
 ```sql
--- Creación de la base de datos de Planificación Aurea
+-- Creación de la base de datos de Planificación Financial Planner
 CREATE TABLE "UserProfile" (
     "id" VARCHAR(255) PRIMARY KEY,
     "name" VARCHAR(255) NOT NULL,
@@ -105,28 +105,28 @@ CREATE TABLE "FinancialGoal" (
 Sigue estos sencillos pasos para tener tu app arriba en 5 minutos:
 
 ### Paso 1: Sube la aplicación a tu cuenta de GitHub
-1. Crea un repositorio vacío en GitHub llamado `aurea-financial-intelligence`.
+1. Crea un repositorio vacío en GitHub llamado `financial-planner`.
 2. Inicializa git localmente y haz tu primer push:
    ```bash
    git init
    git add .
-   git commit -m "feat: base unificada de aurea intelligence lista para Render"
+   git commit -m "feat: base unificada de financial planner lista para Render"
    git branch -M main
-   git remote add origin https://github.com/TU_USUARIO/aurea-financial-intelligence.git
+   git remote add origin https://github.com/TU_USUARIO/financial-planner.git
    git push -u origin main
    ```
 
 ### Paso 2: Crea un Web Service en Render
 1. Inicia sesión en **[dashboard.render.com](https://dashboard.render.com)**.
 2. Haz clic en **New +** y selecciona **Web Service**.
-3. Conéctate a tu repositorio de GitHub `aurea-financial-intelligence`.
+3. Conéctate a tu repositorio de GitHub `financial-planner`.
 
 ### Paso 3: Configura las variables y comandos de renderizado
 Llena los campos solicitados con los siguientes parámetros:
 
 | Parámetro | Valor de Configuración |
 | :--- | :--- |
-| **Name** | `aurea-financial-intelligence` |
+| **Name** | `financial-planner` |
 | **Root Directory** | *(Dejar vacío para usar la raíz del proyecto* `.`*)* |
 | **Runtime** | `Node` |
 | **Region** | Sólido (e.g., `Oregon` o `Frankfurt`) |

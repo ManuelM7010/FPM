@@ -1,4 +1,4 @@
-// Aurea AI Handlers using Gemini API via @google/genai
+// FPM AI Handlers using Gemini API via @google/genai
 import { GoogleGenAI, Type } from "@google/genai";
 
 // Initialize Gemini helper function
@@ -180,7 +180,7 @@ La narrativa debe estar escrita en Markdown en Español. Debe incluir:
     return response.text || "No se pudo generar la narrativa. Por favor intente más tarde.";
   } catch (error) {
     console.error("Error generating narrative:", error);
-    return "Error al conectar con la IA de Aurea. Por favor, verifica tu conexión o configuración de secretos.";
+    return "Error al conectar con la IA de Financial Planner. Por favor, verifica tu conexión o configuración de secretos.";
   }
 }
 
@@ -201,9 +201,9 @@ export async function chatWithAIHandler(message: string, history: any[], financi
 
     let reply = "";
     if (isSimulator) {
-      reply = "¡Excelente pregunta de simulación en Aurea! Si llevas a cabo este cambio o simulación (por ejemplo, omitir una suscripción o elevar tu ahorro), recuerda que puedes usar nuestra pestaña 'Simulador de Escenarios' a la izquierda para visualizar el impacto exacto en gráficos a 12 meses. En líneas generales: reducir un gasto fijo mensual te permite destinar ese excedente directamente a inversión compuesta, reduciendo tu fecha de jubilación o meta por varios meses.";
+      reply = "¡Excelente pregunta de simulación en Financial Planner! Si llevas a cabo este cambio o simulación (por ejemplo, omitir una suscripción o elevar tu ahorro), recuerda que puedes usar nuestra pestaña 'Simulador de Escenarios' a la izquierda para visualizar el impacto exacto en gráficos a 12 meses. En líneas generales: reducir un gasto fijo mensual te permite destinar ese excedente directamente a inversión compuesta, reduciendo tu fecha de jubilación o meta por varios meses.";
     } else if (isForecast) {
-      reply = "De acuerdo a tus compromisos vigentes y gastos fijos registrados, tu flujo de caja se mantendrá estable si conservas tus ingresos. Para planificar a 6, 12 o 24 meses, te sugiero mirar el gráfico de 'Proyecciones Cashflow' en el Dashboard de Aurea, el cual calcula dinámicamente tu saldo proyectado día con día.";
+      reply = "De acuerdo a tus compromisos vigentes y gastos fijos registrados, tu flujo de caja se mantendrá estable si conservas tus ingresos. Para planificar a 6, 12 o 24 meses, te sugiero mirar el gráfico de 'Proyecciones Cashflow' en el Dashboard de Financial Planner, el cual calcula dinámicamente tu saldo proyectado día con día.";
     } else if (isEmergency) {
       const fund = financialState.metrics?.emergencyFund || 0;
       reply = `Tu fondo de emergencia actual registrado es de **$${fund.toLocaleString()}**. Un fondo óptimo cubre entre 3 y 6 meses de tus gastos fijos estimados. Te sugiero destinar un porcentaje fijo mensual automatizado para blindarte ante imprevistos.`;
@@ -214,7 +214,7 @@ export async function chatWithAIHandler(message: string, history: any[], financi
     } else if (isDebt) {
       reply = "Para gestionar deudas racionalmente, te sugiero utilizar el método Bola de Nieve (pagar la menor de primero para ganar tracción psicológica) o el método Avalancha (pagar la de mayor tasa de interés para ahorrar costos financieros).";
     } else {
-      reply = `Hola, soy tu asistente financiero AUREA. Conozco tu estado financiero: tu ingreso registrado es **$${(financialState.user?.salary || 0).toLocaleString()}** y tienes metas de ahorro de **$${(financialState.user?.savingsGoal || 0).toLocaleString()}**. ¿Te gustaría que analicemos algún patrón específico en tus gastos, simulemos un escenario como comprar un vehículo, o calculemos tu flujo de caja proyectado para los próximos 6 meses?`;
+      reply = `Hola, soy tu asistente financiero FPM. Conozco tu estado financiero: tu ingreso registrado es **$${(financialState.user?.salary || 0).toLocaleString()}** y tienes metas de ahorro de **$${(financialState.user?.savingsGoal || 0).toLocaleString()}**. ¿Te gustaría que analicemos algún patrón específico en tus gastos, simulemos un escenario como comprar un vehículo, o calculemos tu flujo de caja proyectado para los próximos 6 meses?`;
     }
     return reply;
   }
@@ -226,7 +226,7 @@ export async function chatWithAIHandler(message: string, history: any[], financi
     }));
 
     // Insert system prompt directly into the structure or as systemInstruction config
-    const systemPrompt = `Actúa como AUREA, un Asistente de Finanzas Personales e Inteligencia Cognitiva altamente sofisticado y amigable.
+    const systemPrompt = `Actúa como FPM, un Asistente de Finanzas Personales e Inteligencia Cognitiva altamente sofisticado y amigable.
 Conoces por completo los datos financieros reales y actuales del usuario que te proporcionamos abajo:
 
 DATOS FINANCIEROS DEL USUARIO:
@@ -256,6 +256,6 @@ DIRECTRICES:
     return response.text || "Disculpa, no logré formular una respuesta en este momento.";
   } catch (error) {
     console.error("Error in Gemini AI chatbot handler:", error);
-    return "Ups, ocurrió un error en los servidores inteligentes de Aurea. Respondiendo de forma local: Tu flujo y presupuesto están asegurados en tu almacenamiento local. ¿Te puedo ayudar en algo más?";
+    return "Ups, ocurrió un error en los servidores inteligentes de Financial Planner. Respondiendo de forma local: Tu flujo y presupuesto están asegurados en tu almacenamiento local. ¿Te puedo ayudar en algo más?";
   }
 }

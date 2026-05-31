@@ -1,4 +1,4 @@
-// Aurea Financial Intelligence Vite Configuration
+// Financial Planner Vite Configuration
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';

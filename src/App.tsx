@@ -1,4 +1,4 @@
-// Aurea Financial Intelligence Main Application Core
+// FPM Financial Planner Main Application Core
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   TrendingUp,
@@ -78,7 +78,7 @@ import {
 export default function App() {
   // Onboarding & user configurations state
   const [user, setUser] = useState<UserOnboarding | null>(() => {
-    const saved = localStorage.getItem('aurea_user');
+    const saved = localStorage.getItem('fpm_user');
     return saved ? JSON.parse(saved) : null;
   });
 
@@ -86,38 +86,38 @@ export default function App() {
 
   // Core entity states
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem('aurea_transactions');
+    const saved = localStorage.getItem('fpm_transactions');
     return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
   });
 
   const [installments, setInstallments] = useState<Installment[]>(() => {
-    const saved = localStorage.getItem('aurea_installments');
+    const saved = localStorage.getItem('fpm_installments');
     return saved ? JSON.parse(saved) : INITIAL_INSTALLMENTS;
   });
 
   const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>(() => {
-    const saved = localStorage.getItem('aurea_recurring');
+    const saved = localStorage.getItem('fpm_recurring');
     return saved ? JSON.parse(saved) : INITIAL_RECURRING_EXPENSES;
   });
 
   const [budgets, setBudgets] = useState<Budget[]>(() => {
-    const saved = localStorage.getItem('aurea_budgets');
+    const saved = localStorage.getItem('fpm_budgets');
     return saved ? JSON.parse(saved) : DEFAULT_BUDGETS;
   });
 
   const [goals, setGoals] = useState<FinancialGoal[]>(() => {
-    const saved = localStorage.getItem('aurea_goals');
+    const saved = localStorage.getItem('fpm_goals');
     return saved ? JSON.parse(saved) : INITIAL_GOALS;
   });
 
   // Assistant & Chat States
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
-    const saved = localStorage.getItem('aurea_chat');
+    const saved = localStorage.getItem('fpm_chat');
     return saved ? JSON.parse(saved) : [
       {
         id: "msg-welcome",
         sender: "ai",
-        text: "Hola, soy tu asistente financiero cognitive AUREA. Conozco el estado de tu cuenta e historial. ¿Te gustaría que analicemos algún patrón en tus gastos, simulemos un escenario como comprar un vehículo, o calculemos tu flujo de caja proyectado para los próximos meses?",
+        text: "Hola, soy tu asistente financiero cognitive FPM. Conozco el estado de tu cuenta e historial. ¿Te gustaría que analicemos algún patrón en tus gastos, simulemos un escenario como comprar un vehículo, o calculemos tu flujo de caja proyectado para los próximos meses?",
         timestamp: new Date().toLocaleTimeString()
       }
     ];
@@ -128,7 +128,7 @@ export default function App() {
 
   // Financial narrative statement
   const [narrativeText, setNarrativeText] = useState<string>(() => {
-    return localStorage.getItem('aurea_narrative') || "";
+    return localStorage.getItem('fpm_narrative') || "";
   });
   const [isNarrativeLoading, setIsNarrativeLoading] = useState(false);
 
@@ -253,34 +253,34 @@ export default function App() {
 
   // Persistent storage synchronizer
   useEffect(() => {
-    localStorage.setItem('aurea_transactions', JSON.stringify(transactions));
+    localStorage.setItem('fpm_transactions', JSON.stringify(transactions));
   }, [transactions]);
 
   useEffect(() => {
-    localStorage.setItem('aurea_installments', JSON.stringify(installments));
+    localStorage.setItem('fpm_installments', JSON.stringify(installments));
   }, [installments]);
 
   useEffect(() => {
-    localStorage.setItem('aurea_recurring', JSON.stringify(recurringExpenses));
+    localStorage.setItem('fpm_recurring', JSON.stringify(recurringExpenses));
   }, [recurringExpenses]);
 
   useEffect(() => {
-    localStorage.setItem('aurea_budgets', JSON.stringify(budgets));
+    localStorage.setItem('fpm_budgets', JSON.stringify(budgets));
   }, [budgets]);
 
   useEffect(() => {
-    localStorage.setItem('aurea_goals', JSON.stringify(goals));
+    localStorage.setItem('fpm_goals', JSON.stringify(goals));
   }, [goals]);
 
   useEffect(() => {
-    localStorage.setItem('aurea_chat', JSON.stringify(chatMessages));
+    localStorage.setItem('fpm_chat', JSON.stringify(chatMessages));
   }, [chatMessages]);
 
   useEffect(() => {
     if (user) {
-      localStorage.setItem('aurea_user', JSON.stringify(user));
+      localStorage.setItem('fpm_user', JSON.stringify(user));
     } else {
-      localStorage.removeItem('aurea_user');
+      localStorage.removeItem('fpm_user');
     }
   }, [user]);
 
@@ -387,7 +387,7 @@ export default function App() {
         {
           id: "msg-welcome",
           sender: "ai",
-          text: "Hola, soy tu asistente financiero cognitive AUREA. Conozco el estado de tu cuenta e historial. ¿Te gustaría que analicemos algún patrón en tus gastos, simulemos un escenario como comprar un vehículo, o calculemos tu flujo de caja proyectado para los próximos meses?",
+          text: "Hola, soy tu asistente financiero cognitive FPM. Conozco el estado de tu cuenta e historial. ¿Te gustaría que analicemos algún patrón en tus gastos, simulemos un escenario como comprar un vehículo, o calculemos tu flujo de caja proyectado para los próximos meses?",
           timestamp: new Date().toLocaleTimeString()
         }
       ]);
@@ -1018,7 +1018,7 @@ export default function App() {
       if (response.ok) {
         const json = await response.json();
         setNarrativeText(json.narrative);
-        localStorage.setItem('aurea_narrative', json.narrative);
+        localStorage.setItem('fpm_narrative', json.narrative);
       } else {
         throw new Error();
       }
@@ -1086,7 +1086,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
         const newSaveMo = computedMetrics.monthlySavings + raiseVal;
         backupReply = `### Simulación: Aumento Salarial del 10%\n\n*   **Ingreso Extra Mensual:** $${raiseVal.toFixed(0)}\n*   **Patrimonio Proyectado a 12 meses:** Tendrá un incremento neto adicional de **$${(raiseVal * 12).toLocaleString()}**.\n\n**Análisis:** Tu nueva capacidad de ahorro mensual pasa a **$${newSaveMo.toLocaleString()}**. Si mantienes tu costo de vida actual sin inflarlo (inflación del estilo de vida), tu tasa de ahorro escalará un **${(raiseVal / (user?.salary || 1000) * 100).toFixed(0)}%**, permitiéndote alcanzar todas tus metas activas 4 meses antes de lo esperado.`;
       } else if (question.includes("vehículo") || question.includes("vehiculo")) {
-        backupReply = `### Simulación: Comprar un Vehículo ($15k total financiado)\n\n*   **Cuota Estimada (36 meses @ tasa 0%):** $416.00 / mes\n*   **Impacto en Flujo de Caja:** Tus gastos mensuales pasarán de **$${computedMetrics.totalExpenseMonth.toLocaleString()}** a **$${(computedMetrics.totalExpenseMonth + 416).toLocaleString()}**.\n*   **Nueva Tasa de Ahorro:** Caerá significativamente de **${computedMetrics.savingsRate.toFixed(1)}%** a **${Math.max(0, (computedMetrics.totalIncomeMonth - computedMetrics.totalExpenseMonth - 416) / computedMetrics.totalIncomeMonth * 100).toFixed(1)}%**.\n\n**Recomendación de Aurea:** Esta carga representa un nivel de apalancamiento importante. Tu fondo de emergencia de seguridad caería de **${computedMetrics.emergencyDays} días** a menor autonomía de manera drástica. Se sugiere posponer si no es una necesidad laboral urgente.`;
+        backupReply = `### Simulación: Comprar un Vehículo ($15k total financiado)\n\n*   **Cuota Estimada (36 meses @ tasa 0%):** $416.00 / mes\n*   **Impacto en Flujo de Caja:** Tus gastos mensuales pasarán de **$${computedMetrics.totalExpenseMonth.toLocaleString()}** a **$${(computedMetrics.totalExpenseMonth + 416).toLocaleString()}**.\n*   **Nueva Tasa de Ahorro:** Caerá significativamente de **${computedMetrics.savingsRate.toFixed(1)}%** a **${Math.max(0, (computedMetrics.totalIncomeMonth - computedMetrics.totalExpenseMonth - 416) / computedMetrics.totalIncomeMonth * 100).toFixed(1)}%**.\n\n**Recomendación del Planificador:** Esta carga representa un nivel de apalancamiento importante. Tu fondo de emergencia de seguridad caería de **${computedMetrics.emergencyDays} días** a menor autonomía de manera drástica. Se sugiere posponer si no es una necesidad laboral urgente.`;
       } else {
         backupReply = `### Simulación General de Escenario\n\n*   **Recálculo de Flujo de Caja:** Realizado.\n*   **Recomendación:** Al alterar tus ingresos fijos o variables, prioriza balancear tus deudas primero. Cada dólar que pagues por adelantado a deudas de más del 8% de interés renta más que cualquier cuenta de ahorro tradicional.`;
       }
@@ -1357,11 +1357,11 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
       ]);
       setBudgets(DEFAULT_BUDGETS.map(b => ({ ...b, limit: 0 })));
       // clear local storage
-      localStorage.setItem('aurea_transactions', JSON.stringify([]));
-      localStorage.setItem('aurea_installments', JSON.stringify([]));
-      localStorage.setItem('aurea_recurring', JSON.stringify([]));
-      localStorage.setItem('aurea_budgets', JSON.stringify(DEFAULT_BUDGETS.map(b => ({ ...b, limit: 0 }))));
-      localStorage.setItem('aurea_goals', JSON.stringify([]));
+      localStorage.setItem('fpm_transactions', JSON.stringify([]));
+      localStorage.setItem('fpm_installments', JSON.stringify([]));
+      localStorage.setItem('fpm_recurring', JSON.stringify([]));
+      localStorage.setItem('fpm_budgets', JSON.stringify(DEFAULT_BUDGETS.map(b => ({ ...b, limit: 0 }))));
+      localStorage.setItem('fpm_goals', JSON.stringify([]));
       localStorage.setItem('fpm_credit_cards', JSON.stringify([]));
       localStorage.setItem('fpm_bank_accounts', JSON.stringify([
         { id: 'ba-1', name: 'Cuenta de Banco Principal', balance: 0 }
@@ -1539,8 +1539,8 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
     }));
     const worksheet = XLSX.utils.json_to_sheet(rawData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Aurea Ledger");
-    XLSX.writeFile(workbook, "Historial_Financiero_Aurea.xlsx");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "FPM Ledger");
+    XLSX.writeFile(workbook, "Historial_Financiero.xlsx");
   };
 
   // Display Onboarding screen if user state is empty
@@ -1553,11 +1553,11 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
         <div className="w-full max-w-2xl bg-zinc-950 border border-zinc-800 rounded-3xl p-8 md:p-10 shadow-2xl relative">
           <div className="flex items-center gap-3 mb-8 justify-center">
             <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center">
-              <span className="text-black font-black text-2xl">A</span>
+              <span className="text-black font-black text-2xl">F</span>
             </div>
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-white">AUREA</h2>
-              <p className="text-xs text-amber-500 uppercase tracking-widest font-semibold">Financial Intelligence</p>
+              <h2 className="text-xl font-bold tracking-tight text-white">FPM</h2>
+              <p className="text-xs text-amber-500 uppercase tracking-widest font-semibold">Financial Planner</p>
             </div>
           </div>
 
@@ -1709,8 +1709,8 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
               <DollarSign className="w-6 h-6 text-black stroke-[2.5]" />
             </div>
             <div>
-              <h2 className="text-xs font-black tracking-tight text-white leading-none">AUREA AI</h2>
-              <p className="text-[9px] text-zinc-500 uppercase tracking-wider font-semibold mt-0.5">Intelligence</p>
+              <h2 className="text-xs font-black tracking-tight text-white leading-none">FPM AI</h2>
+              <p className="text-[9px] text-zinc-500 uppercase tracking-wider font-semibold mt-0.5">Planner</p>
             </div>
           </div>
 
@@ -1851,7 +1851,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
         {/* HEADER SECTION METRICS */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center pb-6 border-b border-zinc-850 gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Aurea Financial Intelligence</h1>
+            <h1 className="text-2xl font-bold text-white tracking-tight">FPM Financial Planner</h1>
             <p className="text-zinc-500 text-xs font-medium uppercase tracking-widest mt-1">
               Arquitectura Patrimonial e IA • {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
@@ -2184,7 +2184,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                     <Sparkles className="w-5 h-5 animate-pulse" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-zinc-100">Auditoría Narrativa Cognitive Aurea</h3>
+                    <h3 className="text-sm font-semibold text-zinc-100">Auditoría Narrativa Cognitive FPM</h3>
                     <p className="text-[10px] text-amber-500/80 uppercase tracking-wide font-medium">Análisis en tiempo real impulsado por Inteligencia Artificial</p>
                   </div>
                 </div>
@@ -2421,7 +2421,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                     disabled={isClassifying}
                     className="w-full py-2 bg-amber-500 font-semibold text-black text-xs rounded-xl hover:bg-amber-400 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    {isClassifying ? "AI Categorizando movimientos..." : "Escanear & Clasificar con Inteligencia Artificial Aurea"}
+                    {isClassifying ? "AI Categorizando movimientos..." : "Escanear & Clasificar con Inteligencia Artificial FPM"}
                   </button>
                 </div>
               )}
@@ -3647,9 +3647,9 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                     <p className="text-[10px] text-zinc-500 uppercase mt-0.5">Evolución de Ahorro Neto Compuesto del Patrimonio</p>
                   </div>
                   <div className="flex gap-4 text-[10px] font-semibold tracking-wide">
-                    <div className="flex items-center gap-2"><div class="w-2.5 h-2.5 rounded bg-emerald-500"></div> Optimista</div>
-                    <div className="flex items-center gap-2"><div class="w-2.5 h-2.5 rounded bg-amber-500"></div> Base</div>
-                    <div className="flex items-center gap-2"><div class="w-2.5 h-2.5 rounded bg-red-500"></div> Pesimista</div>
+                    <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded bg-emerald-500"></div> Optimista</div>
+                    <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded bg-amber-500"></div> Base</div>
+                    <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded bg-red-500"></div> Pesimista</div>
                   </div>
                 </div>
 
@@ -4388,7 +4388,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
           <div className="p-4 border-b border-zinc-850 flex justify-between items-center bg-[#101013]">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-amber-500 rounded-full animate-ping"></div>
-              <span className="text-xs font-bold text-zinc-200 tracking-wider uppercase">Asistente Aurea Cog</span>
+              <span className="text-xs font-bold text-zinc-200 tracking-wider uppercase">Asistente AI FPM</span>
             </div>
             <button 
               onClick={() => setIsChatOpen(false)}
@@ -4421,7 +4421,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
             {isAiLoading && (
               <div className="flex items-center gap-2 text-xs text-zinc-500 italic p-3">
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                Aurea está analizando tus estados de cuenta...
+                El asistente está analizando tus estados de cuenta...
               </div>
             )}
           </div>

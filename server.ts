@@ -1,4 +1,4 @@
-// Aurea Financial Intelligence Production Server
+// Financial Planner Production Server
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
