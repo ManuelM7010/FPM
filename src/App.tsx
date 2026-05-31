@@ -1,4 +1,4 @@
-// FPM Financial Planner Main Application Core
+// Aurea Financial Intelligence Main Application Core
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   TrendingUp,
@@ -345,6 +345,32 @@ export default function App() {
     });
 
     setNarrativeText("");
+  };
+
+  // Handles updating existing settings without wiping other states
+  const handleUpdateUserSettings = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!user) return;
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('userName') as string || user.name;
+    const country = formData.get('country') as string || user.country;
+    const currency = formData.get('currency') as string || user.currency;
+    const salary = parseFloat(formData.get('salary') as string) || user.salary;
+    const paymentFrequency = formData.get('paymentFrequency') as any || user.paymentFrequency;
+    const savingsGoalPct = parseFloat(formData.get('savingsGoalPct') as string) || user.savingsGoalPct;
+    const desiredEmergencyFundMonths = parseFloat(formData.get('desiredEmergencyFundMonths') as string) || user.desiredEmergencyFundMonths;
+
+    setUser({
+      name,
+      country,
+      currency,
+      salary,
+      paymentFrequency,
+      objectives: user.objectives,
+      savingsGoalPct,
+      desiredEmergencyFundMonths
+    });
+    alert("¡Configuración del perfil financiero guardada exitosamente!");
   };
 
   // Restores standard starter profile
@@ -1683,8 +1709,8 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
               <DollarSign className="w-6 h-6 text-black stroke-[2.5]" />
             </div>
             <div>
-              <h2 className="text-xs font-black tracking-tight text-white leading-none">FPM PLANNER</h2>
-              <p className="text-[9px] text-zinc-500 uppercase tracking-wider font-semibold mt-0.5">Financial Pro</p>
+              <h2 className="text-xs font-black tracking-tight text-white leading-none">AUREA AI</h2>
+              <p className="text-[9px] text-zinc-500 uppercase tracking-wider font-semibold mt-0.5">Intelligence</p>
             </div>
           </div>
 
@@ -1761,6 +1787,19 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
               <Calendar className="w-4 h-4 text-purple-500" />
               <span>Calendario Inteligente</span>
             </button>
+
+            <button
+              id="btn-tab-config"
+              onClick={() => setActiveTab(6)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide uppercase transition-all ${
+                activeTab === 6 
+                  ? 'bg-zinc-800 text-amber-500 shadow-inner' 
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+              }`}
+            >
+              <Settings className="w-4 h-4 text-blue-500" />
+              <span>Configuración</span>
+            </button>
           </nav>
         </div>
 
@@ -1812,7 +1851,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
         {/* HEADER SECTION METRICS */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center pb-6 border-b border-zinc-850 gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">FPM Financial Planner</h1>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Aurea Financial Intelligence</h1>
             <p className="text-zinc-500 text-xs font-medium uppercase tracking-widest mt-1">
               Arquitectura Patrimonial e IA • {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
@@ -3162,7 +3201,8 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
 
             </div>
                    {/* CONFIGURACIÓN AVANZADA DE MEDIOS Y CATEGORÍAS */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+            {false && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 font-sans">
               
               {/* BANK ACCOUNTS MANAGER BOARD */}
               <div className="lg:col-span-4 bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
@@ -3588,6 +3628,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                 </form>
               </div>
             </div>
+            )}
 
           </div>
         )}
@@ -3757,6 +3798,583 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
             <div className="flex items-center gap-2 p-3 bg-zinc-950 rounded-xl border border-zinc-850 text-[10px] text-zinc-500">
               <Info className="w-4 h-4 text-zinc-450 shrink-0" />
               <span>El calendario calcula la dinámica de balance asumiendo un fondo líquido inicial ordinario. Úsalo para planificar egresos de deudas.</span>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 6: CONFIGURACIÓN GENERAL, PERFIL, MEDIOS DE PAGO, TARJETAS, CATEGORIAS */}
+        {activeTab === 6 && (
+          <div className="space-y-6 pt-6 font-sans">
+            <div className="border-b border-zinc-800 pb-4">
+              <h2 className="text-xl font-bold text-zinc-100 flex items-center gap-2">
+                <Settings className="w-5 h-5 text-amber-500 animate-spin-slow" /> Configuración General del Sistema
+              </h2>
+              <p className="text-xs text-zinc-400 mt-1">Personaliza los parámetros base de tu planificador financiero, agrega cuentas de liquidación, gestiona tarjetas de crédito, cupos y categorías.</p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* PERFIL GENERAL / PARAMETROS */}
+              <div className="lg:col-span-4 bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-zinc-200">Parámetros del Perfil</h3>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider mt-0.5 animate-pulse">Ajustes Base y Moneda</p>
+                  </div>
+                  <Settings className="w-4 h-4 text-zinc-500" />
+                </div>
+
+                <form onSubmit={handleUpdateUserSettings} className="space-y-4 text-xs">
+                  <div>
+                    <label className="block text-[10px] text-zinc-450 uppercase mb-1">Nombre Completo</label>
+                    <input
+                      required
+                      type="text"
+                      name="userName"
+                      defaultValue={user.name}
+                      className="w-full bg-zinc-950 border border-zinc-800 text-xs px-2.5 py-1.5 rounded text-white focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] text-zinc-450 uppercase mb-1">País</label>
+                      <input
+                        required
+                        type="text"
+                        name="country"
+                        defaultValue={user.country}
+                        className="w-full bg-zinc-950 border border-zinc-800 text-xs px-2.5 py-1.5 rounded text-white focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-zinc-450 uppercase mb-1">Moneda Local</label>
+                      <select
+                        name="currency"
+                        defaultValue={user.currency}
+                        className="w-full bg-zinc-950 border border-zinc-800 text-xs px-1 py-1.5 rounded text-white focus:border-amber-500 focus:outline-none"
+                      >
+                        <option value="$">$ (Pesos / USD / Símbolo General)</option>
+                        <option value="€">€ (Euro)</option>
+                        <option value="¥">¥ (Yen / Yuan)</option>
+                        <option value="£">£ (Libra Esterlina)</option>
+                        <option value="S/.">S/. (Sol Peruano)</option>
+                        <option value="Bs.">Bs. (Boliviano/Bolívar)</option>
+                        <option value="UF">UF (Unidad de Fomento)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] text-zinc-450 uppercase mb-1">Sueldo / Ingreso Neto</label>
+                      <input
+                        required
+                        type="number"
+                        name="salary"
+                        defaultValue={user.salary}
+                        className="w-full bg-zinc-950 border border-zinc-800 font-mono text-xs px-2.5 py-1.5 rounded text-white focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-zinc-450 uppercase mb-1">Frecuencia de Pago</label>
+                      <select
+                        name="paymentFrequency"
+                        defaultValue={user.paymentFrequency}
+                        className="w-full bg-zinc-950 border border-zinc-800 text-xs px-1.5 py-1.5 rounded text-white focus:border-amber-500 focus:outline-none"
+                      >
+                        <option value="Mensual">Mensual</option>
+                        <option value="Quincenal">Quincenal</option>
+                        <option value="Semanal">Semanal</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] text-zinc-450 uppercase mb-1">% Meta de Ahorro</label>
+                      <input
+                        required
+                        type="number"
+                        min="1"
+                        max="100"
+                        name="savingsGoalPct"
+                        defaultValue={user.savingsGoalPct}
+                        className="w-full bg-zinc-950 border border-zinc-800 font-mono text-xs px-2.5 py-1.5 rounded text-white focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-zinc-450 uppercase mb-1">Meses Fondo Emergencia</label>
+                      <input
+                        required
+                        type="number"
+                        min="1"
+                        max="24"
+                        name="desiredEmergencyFundMonths"
+                        defaultValue={user.desiredEmergencyFundMonths}
+                        className="w-full bg-zinc-950 border border-zinc-800 font-mono text-xs px-2.5 py-1.5 rounded text-white focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold rounded-lg text-xs uppercase cursor-pointer transition-all mt-2"
+                  >
+                    Guardar Ajustes de Perfil
+                  </button>
+                </form>
+              </div>
+
+              {/* BANK ACCOUNTS CONTROL */}
+              <div className="lg:col-span-4 bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-zinc-200">Cuentas Bancarias</h3>
+                    <p className="text-[10px] text-zinc-500 uppercase mt-0.5">Saldos Líquidos y Efectivo</p>
+                  </div>
+                  <HelpCircle className="w-4 h-4 text-zinc-500 animate-pulse" />
+                </div>
+
+                <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
+                  {bankAccounts.map(ba => {
+                    const isEditing = editingBankAccountId === ba.id;
+                    return (
+                      <div key={ba.id} className="p-3 bg-zinc-950/45 rounded-xl border border-zinc-850 flex flex-col gap-2 transition-all text-xs">
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <div>
+                              <label className="text-[9px] uppercase font-bold text-zinc-450 tracking-wider block mb-1">Nombre de la Cuenta</label>
+                              <input
+                                type="text"
+                                value={editingBankAccountData?.name || ''}
+                                onChange={e => setEditingBankAccountData(prev => ({ ...prev, name: e.target.value }))}
+                                className="w-full bg-zinc-900 border border-zinc-800 text-xs px-2.5 py-1.5 rounded text-white focus:border-amber-500 focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] uppercase font-bold text-zinc-455 tracking-wider block mb-1">Saldo Disponible ({user.currency})</label>
+                              <input
+                                type="number"
+                                value={editingBankAccountData?.balance || ''}
+                                onChange={e => setEditingBankAccountData(prev => ({ ...prev, balance: e.target.value }))}
+                                className="w-full bg-zinc-900 border border-zinc-800 text-xs px-2.5 py-1.5 rounded text-white font-mono focus:border-amber-500 focus:outline-none"
+                              />
+                            </div>
+                            <div className="flex gap-2 justify-end pt-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingBankAccountId(null);
+                                  setEditingBankAccountData(null);
+                                }}
+                                className="px-2 py-1 bg-zinc-850 hover:bg-zinc-800 text-[9px] uppercase font-bold text-zinc-400 rounded-md transition-colors"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleSaveBankAccountEdit}
+                                className="px-2 py-1 bg-amber-500 hover:bg-amber-400 text-[9px] uppercase font-bold text-black rounded-md flex items-center gap-1 transition-colors"
+                              >
+                                <Check className="w-3 h-3 text-black" /> Guardar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="font-semibold text-zinc-100">{ba.name}</p>
+                              <p className="text-[10px] text-zinc-450 mt-0.5">
+                                Saldo actual: <span className="font-semibold text-emerald-450 font-mono">{user.currency}{ba.balance?.toLocaleString() || '0'}</span>
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleStartEditBankAccount(ba)}
+                                className="text-zinc-400 hover:text-amber-500 p-1.5 cursor-pointer rounded-lg hover:bg-zinc-850/60 transition-colors"
+                                title="Editar esta cuenta"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`¿Estás seguro de que deseas eliminar la cuenta "${ba.name}"?`)) {
+                                    setBankAccounts(prev => prev.filter(item => item.id !== ba.id));
+                                  }
+                                }}
+                                className="text-zinc-500 hover:text-red-400 p-1.5 cursor-pointer rounded-lg hover:bg-zinc-850/60 transition-colors"
+                                title="Eliminar cuenta bancaria"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {bankAccounts.length === 0 && (
+                    <p className="text-xs text-zinc-500 italic py-2 text-center font-sans">No hay cuentas bancarias registradas.</p>
+                  )}
+                </div>
+
+                <form onSubmit={handleAddBankAccount} className="mt-4 pt-4 border-t border-zinc-850 space-y-3 font-sans">
+                  <p className="text-[11px] font-bold text-amber-500/80 uppercase">Añadir nueva cuenta</p>
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <label className="block text-[10px] text-zinc-450 uppercase mb-1">Nombre de la Cuenta / Efectivo</label>
+                      <input
+                        required
+                        type="text"
+                        placeholder="e.g. Cuenta de Ahorro, Efectivo"
+                        value={newBankAccount.name}
+                        onChange={e => setNewBankAccount(prev => ({...prev, name: e.target.value}))}
+                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2 text-white placeholder-zinc-700"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-zinc-450 uppercase mb-1">Saldo Líquido Disponible</label>
+                      <input
+                        required
+                        type="number"
+                        placeholder="3500"
+                        value={newBankAccount.balance}
+                        onChange={e => setNewBankAccount(prev => ({...prev, balance: e.target.value}))}
+                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2 text-white placeholder-zinc-700 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-2 bg-zinc-800 hover:bg-zinc-750 text-amber-500 border border-zinc-700 font-semibold rounded-lg text-xs uppercase cursor-pointer transition-all"
+                  >
+                    Registrar Cuenta
+                  </button>
+                </form>
+              </div>
+
+              {/* DYNAMIC CATEGORIES MANAGER BOARD */}
+              <div className="lg:col-span-4 bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-zinc-200">Categorías de Gastos</h3>
+                    <p className="text-[10px] text-zinc-500 uppercase mt-0.5">Clasificación del Sistema</p>
+                  </div>
+                  <HelpCircle className="w-4 h-4 text-zinc-500" />
+                </div>
+
+                <div className="flex flex-wrap gap-2 max-h-56 overflow-y-auto p-1 text-xs">
+                  {categories.map(cat => {
+                    const isEditing = editingCategoryName === cat;
+                    return (
+                      <span 
+                        key={cat} 
+                        className="px-2 py-1 bg-zinc-950 border border-zinc-855 rounded-xl text-[11px] text-zinc-300 flex items-center gap-1.5 transition-all duration-150"
+                      >
+                        {isEditing ? (
+                          <span className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={editingCategoryNewValue}
+                              onChange={e => setEditingCategoryNewValue(e.target.value)}
+                              className="bg-zinc-900 border border-zinc-700 text-[10px] px-1.5 py-0.5 rounded text-white w-20 focus:border-amber-500 focus:outline-none font-sans"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSaveCategoryEdit(cat)}
+                              className="text-emerald-400 hover:text-emerald-300 cursor-pointer font-bold px-0.5 text-xs"
+                              title="Guardar nombre"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingCategoryName(null);
+                                setEditingCategoryNewValue("");
+                              }}
+                              className="text-zinc-500 hover:text-zinc-300 cursor-pointer font-bold text-xs px-0.5"
+                              title="Cancelar"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1.5">
+                            <span 
+                              className="cursor-pointer hover:text-amber-500 transition-colors font-medium font-sans"
+                              onClick={() => handleStartEditCategory(cat)}
+                              title="Haz clic para renombrar"
+                            >
+                              {cat}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleStartEditCategory(cat)}
+                              className="text-zinc-500 hover:text-amber-500 transition-colors cursor-pointer"
+                              title="Renombrar clase"
+                            >
+                              <Pencil className="w-2.5 h-2.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (['Alimentación', 'Otros', 'Suscripciones', 'Vivienda'].includes(cat)) {
+                                  alert("Las categorías del núcleo del sistema no se pueden eliminar.");
+                                  return;
+                                }
+                                if (confirm(`¿Estás seguro de que deseas eliminar la categoría "${cat}"?`)) {
+                                  setCategories(prev => prev.filter(c => c !== cat));
+                                }
+                              }}
+                              className="text-zinc-500 hover:text-red-400 font-bold transition-colors cursor-pointer text-xs"
+                              title="Eliminar categoría"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })}
+                </div>
+
+                <form onSubmit={handleAddCategory} className="mt-4 pt-4 border-t border-zinc-850 space-y-3 font-sans">
+                  <p className="text-[11px] font-bold text-amber-500/80 uppercase">Añadir nueva categoría</p>
+                  <div className="text-xs">
+                    <label className="block text-[10px] text-zinc-450 uppercase mb-1">Nombre de Categoría</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="e.g. Educación, Seguros, Mascotas"
+                      value={newCategoryName}
+                      onChange={e => setNewCategoryName(e.target.value)}
+                      className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2 text-white placeholder-zinc-700"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-2 bg-zinc-800 hover:bg-zinc-750 text-amber-500 border border-zinc-700 font-semibold rounded-lg text-xs uppercase cursor-pointer transition-all"
+                  >
+                    Guardar Categoría
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* SECOND GRID ROW: CREDIT CARDS & PAYMENT METHODS CONFIGURATION */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* CREDIT CARDS CONTROL BOARD */}
+              <div className="lg:col-span-8 bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-zinc-200 animate-pulse">Tarjetas de Crédito</h3>
+                    <p className="text-[10px] text-zinc-500 uppercase mt-0.5 font-sans">Control de Fechas de Corte y Límites de Crédito</p>
+                  </div>
+                  <HelpCircle className="w-4 h-4 text-zinc-500" />
+                </div>
+
+                <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
+                  {creditCards.map(c => {
+                    const isEditing = editingCreditCardId === c.id;
+                    return (
+                      <div key={c.id} className="p-3 bg-zinc-950/45 rounded-xl border border-zinc-800/80 flex flex-col gap-2 transition-all text-xs">
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <div>
+                              <label className="text-[9px] uppercase font-bold text-zinc-450 tracking-wider block mb-1">Nombre de la Tarjeta</label>
+                              <input
+                                type="text"
+                                value={editingCreditCardData?.name || ''}
+                                onChange={e => setEditingCreditCardData(prev => ({ ...prev, name: e.target.value }))}
+                                className="w-full bg-zinc-900 border border-zinc-800 text-xs px-2.5 py-1.5 rounded text-white focus:border-amber-500 focus:outline-none"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[9px] uppercase font-bold text-zinc-450 tracking-wider block mb-1">Día Corte</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="31"
+                                  value={editingCreditCardData?.closingDay || ''}
+                                  onChange={e => setEditingCreditCardData(prev => ({ ...prev, closingDay: e.target.value }))}
+                                  className="w-full bg-zinc-900 border border-zinc-800 text-xs px-2.5 py-1.5 rounded text-white font-mono focus:border-amber-500 focus:outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] uppercase font-bold text-zinc-450 tracking-wider block mb-1">Día Pago</label>
+                                  <input
+                                  type="number"
+                                  min="1"
+                                  max="31"
+                                  value={editingCreditCardData?.paymentDay || ''}
+                                  onChange={e => setEditingCreditCardData(prev => ({ ...prev, paymentDay: e.target.value }))}
+                                  className="w-full bg-zinc-900 border border-zinc-800 text-xs px-2.5 py-1.5 rounded text-white font-mono focus:border-amber-500 focus:outline-none"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-[9px] uppercase font-bold text-zinc-455 tracking-wider block mb-1">Cupo Límite ({user.currency})</label>
+                              <input
+                                type="number"
+                                value={editingCreditCardData?.limit || ''}
+                                onChange={e => setEditingCreditCardData(prev => ({ ...prev, limit: e.target.value }))}
+                                className="w-full bg-zinc-900 border border-zinc-800 text-xs px-2.5 py-1.5 rounded text-white font-mono focus:border-amber-500 focus:outline-none"
+                              />
+                            </div>
+                            <div className="flex gap-2 justify-end pt-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingCreditCardId(null);
+                                  setEditingCreditCardData(null);
+                                }}
+                                className="px-2 py-1 bg-zinc-850 hover:bg-zinc-800 text-[9px] uppercase font-bold text-zinc-400 rounded-md transition-colors"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleSaveCreditCardEdit}
+                                className="px-2 py-1 bg-amber-500 hover:bg-amber-400 text-[9px] uppercase font-bold text-black rounded-md flex items-center gap-1 transition-colors"
+                              >
+                                <Check className="w-3 h-3 text-black" /> Guardar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="font-semibold text-zinc-200">{c.name}</p>
+                              <p className="text-[10px] text-zinc-450 mt-0.5">
+                                Corte: Día {c.closingDay} • Pago: Día {c.paymentDay}
+                              </p>
+                              <p className="text-[10px] text-zinc-500">
+                                Cupo Límite: <span className="font-semibold text-zinc-350 font-mono text-amber-500">{user.currency}{(c.limit || 0).toLocaleString()}</span>
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleStartEditCreditCard(c)}
+                                className="text-zinc-400 hover:text-amber-500 p-1.5 cursor-pointer rounded-lg hover:bg-zinc-850/60 transition-colors"
+                                title="Editar esta tarjeta"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`¿Estás seguro de que deseas eliminar la tarjeta de crédito "${c.name}"?`)) {
+                                    setCreditCards(prev => prev.filter(item => item.id !== c.id));
+                                  }
+                                }}
+                                className="text-zinc-500 hover:text-red-400 p-1.5 cursor-pointer rounded-lg hover:bg-zinc-850/60 transition-colors"
+                                title="Eliminar tarjeta"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {creditCards.length === 0 && (
+                    <p className="text-xs text-zinc-500 italic py-2 text-center">No hay tarjetas de crédito registradas.</p>
+                  )}
+                </div>
+
+                <form onSubmit={handleAddCreditCard} className="mt-4 pt-4 border-t border-zinc-850 grid grid-cols-1 md:grid-cols-4 gap-3 text-xs font-sans">
+                  <div className="md:col-span-1">
+                    <label className="block text-[10px] text-zinc-450 uppercase mb-1">Nombre / Banco</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="Tarjeta Visa Platinum"
+                      value={newCard.name}
+                      onChange={e => setNewCard(prev => ({...prev, name: e.target.value}))}
+                      className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2 text-white placeholder-zinc-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-zinc-450 uppercase mb-1">Día Corte</label>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      max="31"
+                      placeholder="15"
+                      value={newCard.closingDay || ''}
+                      onChange={e => setNewCard(prev => ({...prev, closingDay: e.target.value}))}
+                      className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2 text-white placeholder-zinc-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-zinc-450 uppercase mb-1">Día Pago</label>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      max="31"
+                      placeholder="5"
+                      value={newCard.paymentDay || ''}
+                      onChange={e => setNewCard(prev => ({...prev, paymentDay: e.target.value}))}
+                      className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2 text-white placeholder-zinc-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-zinc-450 uppercase mb-1">Cupo Límite</label>
+                    <input
+                      required
+                      type="number"
+                      placeholder="3000"
+                      value={newCard.limit || ''}
+                      onChange={e => setNewCard(prev => ({...prev, limit: e.target.value}))}
+                      className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2 text-white placeholder-zinc-700"
+                    />
+                  </div>
+                  <div className="md:col-span-4 mt-1">
+                    <button
+                      type="submit"
+                      className="w-full py-2 bg-zinc-800 hover:bg-zinc-750 text-amber-500 border border-zinc-700 font-semibold rounded-lg text-xs uppercase cursor-pointer transition-all"
+                    >
+                      Añadir Tarjeta de Crédito
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* MEDIOS DE PAGO EXTRA TIPS */}
+              <div className="lg:col-span-4 bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
+                <div>
+                  <h3 className="text-sm font-semibold text-zinc-200 mb-2">Información y Control de Medios</h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    Configurar correctamente los <strong>Días de Corte</strong> y <strong>Días de Pago</strong> permite al sistema de proyección asimilar exactamente cuándo vencerán tus obligaciones.
+                  </p>
+                  <ul className="text-[11px] text-zinc-500 space-y-2 mt-4">
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-1.5 shrink-0"></div>
+                      <span><strong>Día de Corte</strong>: Cierre del ciclo de compras de tu TDC de cada mes.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-1.5 shrink-0"></div>
+                      <span><strong>Día de Pago</strong>: Fecha límite mensual para amortizar el saldo de la TDC.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-1.5 shrink-0"></div>
+                      <span><strong>Saldos Líquidos</strong>: Tu saldo disponible en efectivo o cuentas de nómina.</span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="pt-4 border-t border-zinc-800/60 text-center text-zinc-500 text-[10px] mt-4 lg:mt-0 font-mono">
+                  SISTEMA PARÁMETROS V1.2 • AI STUDIO BUILD
+                </div>
+              </div>
             </div>
           </div>
         )}

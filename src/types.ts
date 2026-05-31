@@ -1,4 +1,4 @@
-// FPM Application Type Definitions
+// Aurea Financial Intelligence Type Definitions
 export interface UserOnboarding {
   name: string;
   country: string;

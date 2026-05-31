@@ -1,4 +1,4 @@
-// Front-end main entry point for the FPM financial planner
+// Front-end main entry point for the Aurea financial planner
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';

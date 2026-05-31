@@ -1,4 +1,4 @@
-// FPM AI Handlers using Gemini API via @google/genai
+// Aurea AI Handlers using Gemini API via @google/genai
 import { GoogleGenAI, Type } from "@google/genai";
 
 // Initialize Gemini helper function

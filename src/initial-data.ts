@@ -1,4 +1,4 @@
-// FPM Application Initial Data
+// Aurea Financial Intelligence Initial Data
 import { Transaction, Installment, RecurringExpense, Budget, FinancialGoal } from './types';
 
 export const INITIAL_TRANSACTIONS: Transaction[] = [
