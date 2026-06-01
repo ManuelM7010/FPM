@@ -514,9 +514,9 @@ export default function App() {
     const savingsRate = totalIncomeMonth > 0 ? (monthlySavings / totalIncomeMonth) * 100 : 0;
 
     // Assets = cash in banks + user investments
-    const bankCashInflows = totalIncomeMonth * 2.5; 
+    const bankCashSum = bankAccounts.reduce((sum, ba) => sum + ba.balance, 0);
     const goalInvestmentsSum = goals.reduce((sum, g) => sum + g.currentAmount, 0);
-    const assetsVal = bankCashInflows + goalInvestmentsSum;
+    const assetsVal = bankCashSum + goalInvestmentsSum;
 
     // Passives = outstanding debt & installments
     let passivesVal = 0;
@@ -550,7 +550,9 @@ export default function App() {
       passives: passivesVal,
       netWorth,
       debtLeverage,
-      cardBills
+      cardBills,
+      bankCashSum,
+      goalInvestmentsSum
     };
   }, [user, transactions, installments, recurringExpenses, goals, creditCards, currentYear, currentMonth]);
 
