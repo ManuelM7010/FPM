@@ -83,6 +83,17 @@ export default function App() {
   });
 
   const [activeTab, setActiveTab] = useState<number>(0);
+  const [showNetWorthBreakdown, setShowNetWorthBreakdown] = useState<boolean>(false);
+  const [customDataStarted, setCustomDataStarted] = useState<boolean>(() => {
+    return localStorage.getItem('fpm_custom_data_started') === 'true';
+  });
+
+  const markCustomDataStarted = () => {
+    if (!customDataStarted) {
+      setCustomDataStarted(true);
+      localStorage.setItem('fpm_custom_data_started', 'true');
+    }
+  };
 
   // Core entity states
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
@@ -378,6 +389,7 @@ export default function App() {
     if (window.confirm("¿Seguro que deseas reiniciar tu perfil financiero? Se perderán las modificaciones locales.")) {
       localStorage.clear();
       setUser(null);
+      setCustomDataStarted(false);
       setTransactions(INITIAL_TRANSACTIONS);
       setInstallments(INITIAL_INSTALLMENTS);
       setRecurringExpenses(INITIAL_RECURRING_EXPENSES);
@@ -1266,6 +1278,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
       account: 'Cuenta Corriente',
       comments: ''
     });
+    markCustomDataStarted();
     alert('¡Transacción registrada con éxito!');
   };
 
@@ -1299,6 +1312,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
       paymentDay: '5',
       cardAssociated: 'Tarjeta Principal'
     });
+    markCustomDataStarted();
     alert('¡Compra a cuotas registrada exitosamente!');
   };
 
@@ -1325,6 +1339,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
       startDate: new Date().toISOString().split('T')[0],
       paymentDay: '1'
     });
+    markCustomDataStarted();
     alert('Gasto recurrente registrado correctamente.');
   };
 
@@ -1344,6 +1359,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
       name: '',
       balance: ''
     });
+    markCustomDataStarted();
     alert(`Cuenta bancaria "${baItem.name}" agregada exitosamente`);
   };
 
@@ -1368,6 +1384,9 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
       localStorage.setItem('fpm_bank_accounts', JSON.stringify([
         { id: 'ba-1', name: 'Cuenta de Banco Principal', balance: 0 }
       ]));
+      
+      setCustomDataStarted(true);
+      localStorage.setItem('fpm_custom_data_started', 'true');
       
       setChatMessages([
         {
@@ -1401,6 +1420,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
       paymentDay: '5',
       limit: '3000'
     });
+    markCustomDataStarted();
     alert(`Tarjeta de crédito "${cardItem.name}" agregada exitosamente`);
   };
 
@@ -1526,6 +1546,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
       category: 'Fondo de Emergencia',
       targetDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0]
     });
+    markCustomDataStarted();
     alert('Nueva meta de patrimonio creada.');
   };
 
@@ -1817,14 +1838,16 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleClearAllSampleData}
-            className="w-full py-2.5 bg-red-950/20 hover:bg-red-900/40 text-red-400 hover:text-red-300 border border-red-900/40 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Eliminar Todos los Datos de Muestra</span>
-          </button>
+          {!customDataStarted && (
+            <button
+              type="button"
+              onClick={handleClearAllSampleData}
+              className="w-full py-2.5 bg-red-950/20 hover:bg-red-900/40 text-red-500 hover:text-red-450 border border-red-900/30 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Eliminar Todos los Datos de Muestra</span>
+            </button>
+          )}
 
           <div className="flex gap-2">
             <button
@@ -1924,10 +1947,18 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
             {/* KPI ROW METRICS */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
+              <div 
+                onClick={() => setShowNetWorthBreakdown(!showNetWorthBreakdown)}
+                className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-5 flex flex-col justify-between shadow-xl cursor-pointer transition-all duration-200 select-none group relative"
+              >
                 <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Patrimonio Neto</span>
-                  <DollarSign className="w-4 h-4 text-emerald-500" />
+                  <span className="text-[10px] font-bold text-zinc-400 group-hover:text-amber-500 transition-colors uppercase tracking-wider">Patrimonio Neto</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider transition-colors group-hover:text-amber-500">
+                      {showNetWorthBreakdown ? 'Doble Clic / Ocultar x' : 'Cómo se calcula ⓘ'}
+                    </span>
+                    <DollarSign className="w-4 h-4 text-emerald-500" />
+                  </div>
                 </div>
                 <div className="mt-4">
                   <div className="flex items-baseline gap-2">
@@ -1979,6 +2010,86 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
               </div>
 
             </div>
+
+            {/* DETAILED NET WORTH BREAKDOWN EXPLANATION */}
+            {showNetWorthBreakdown && (
+              <div className="p-5 bg-zinc-950 border border-zinc-800/80 rounded-2xl shadow-inner animate-fadeIn relative">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h4 className="text-xs font-bold text-zinc-350 uppercase tracking-widest">¿De dónde sale tu Patrimonio Neto?</h4>
+                    <p className="text-[10px] text-zinc-500 uppercase mt-0.5">Metodología Financiera Automatizada</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowNetWorthBreakdown(false)}
+                    className="text-[9px] bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white px-2 py-1 rounded-md border border-zinc-800 uppercase font-bold"
+                  >
+                    Ocultar Detalle ×
+                  </button>
+                </div>
+                <p className="text-[11px] text-zinc-400 mb-4 max-w-4xl leading-relaxed">
+                  Tu <strong>Patrimonio Neto</strong> es el valor real de tu riqueza neta en esta plataforma. Se recalcula en tiempo real para reflejar exactamente tus posesiones reales (<strong>Activos</strong>) menos tus compromisos liquidados a plazo (<strong>Pasivos</strong>).
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-zinc-900/40 p-4 rounded-xl border border-zinc-850">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">1. Tus Activos (+)</span>
+                      <span className="text-xs font-semibold text-zinc-200">{user.currency}{(computedMetrics.bankCashSum + computedMetrics.goalInvestmentsSum).toLocaleString()}</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-500 mb-2 leading-relaxed">Representan todos los líquidos y recursos de valor que posees:</p>
+                    <ul className="space-y-1.5 text-[11px] text-zinc-300">
+                      <li className="flex justify-between border-b border-zinc-900 pb-1">
+                        <span className="text-zinc-400">• Saldos Totales en Bancos:</span>
+                        <span className="font-mono text-zinc-200">{user.currency}{computedMetrics.bankCashSum.toLocaleString()}</span>
+                      </li>
+                      <li className="flex justify-between border-b border-zinc-900 pb-1">
+                        <span className="text-zinc-400">• Ahorrado en Metas Activas:</span>
+                        <span className="font-mono text-zinc-200">{user.currency}{computedMetrics.goalInvestmentsSum.toLocaleString()}</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-zinc-900/40 p-4 rounded-xl border border-zinc-850">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">2. Tus Pasivos (-)</span>
+                      <span className="text-xs font-semibold text-zinc-200">{user.currency}{computedMetrics.passives.toLocaleString()}</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-500 mb-2 leading-relaxed">Cargos obligatorios pendientes de extinguir:</p>
+                    <ul className="space-y-1.5 text-[11px] text-zinc-300">
+                      <li className="flex justify-between border-b border-zinc-900 pb-1">
+                        <span className="text-zinc-400">• Cuotas Financiadas por Pagar:</span>
+                        <span className="font-mono text-rose-450">{user.currency}{computedMetrics.passives.toLocaleString()}</span>
+                      </li>
+                      <li className="text-[9px] text-zinc-400 leading-normal italic bg-zinc-950/60 p-1.5 rounded border border-zinc-900 mt-1">
+                        Suma del valor de todas las cuotas de tus "Compras a Plazos" multiplicadas por el número de cuotas restantes que te faltan pagar.
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-zinc-900/60 p-4 rounded-xl border border-amber-500/20 flex flex-col justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">3. Patrimonio Neto (=)</span>
+                      <p className="text-[10px] text-zinc-500 mt-1 leading-relaxed">Fórmula matemática fundamental:</p>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-zinc-800">
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-zinc-400">Activos Totales:</span>
+                        <span className="font-mono text-emerald-500">+{user.currency}{(computedMetrics.bankCashSum + computedMetrics.goalInvestmentsSum).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-[11px] mb-2 border-b border-zinc-800 pb-1">
+                        <span className="text-zinc-400">Pasivos Totales:</span>
+                        <span className="font-mono text-rose-500">-{user.currency}{computedMetrics.passives.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-xs font-bold text-zinc-300 uppercase">Resultado Neto:</span>
+                        <span className="text-xl font-light text-amber-400 font-mono">
+                          {user.currency}{computedMetrics.netWorth.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* LIQUIDITY SUMMARY / BANK ACCOUNTS & CREDIT CARDS STATEMENT PROJECTIONS */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -3003,51 +3114,95 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                 
                 <div className="space-y-4">
                   {installments.map(i => {
-                    const remaining = i.totalInstallments - i.paidInstallments;
+                    const remaining = Math.max(0, i.totalInstallments - i.paidInstallments);
                     const balancePending = remaining * i.monthlyAmount;
-                    const finishDate = new Date(i.startDate);
-                    finishDate.setMonth(finishDate.getMonth() + remaining);
+                    
+                    // Safe parsing timezone-independent
+                    const dateParts = i.startDate.split('-');
+                    const startYear = parseInt(dateParts[0], 10);
+                    const startMonth = parseInt(dateParts[1], 10);
+                    const startDay = parseInt(dateParts[2], 10) || 5;
+                    
+                    const pDate = new Date(startYear, startMonth - 1, startDay);
+                    
+                    const finalDate = new Date(startYear, startMonth - 1, startDay);
+                    finalDate.setMonth(finalDate.getMonth() + i.totalInstallments - 1);
 
                     return (
-                      <div key={i.id} className="p-4 bg-zinc-950/60 rounded-xl border border-zinc-850 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div>
-                          <p className="font-semibold text-zinc-200 text-sm">{i.name}</p>
-                          <p className="text-[10px] text-zinc-550 mt-1 uppercase">Cuota {i.paidInstallments}/{i.totalInstallments} • Tarjeta: {i.cardAssociated}</p>
-                          <p className="text-[10px] text-zinc-500 mt-0.5">Vencimiento: Día {i.paymentDay} de cada mes</p>
+                      <div key={i.id} className="p-4 bg-zinc-950/60 rounded-xl border border-zinc-850 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 transition-all hover:bg-zinc-950/80">
+                        <div className="w-full xl:max-w-md">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-zinc-100 text-sm">{i.name}</p>
+                            <span className="text-[9px] bg-zinc-900 border border-zinc-800 text-zinc-400 font-semibold px-2 py-0.5 rounded-full uppercase">
+                              {i.category || 'Otros'}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-zinc-500 mt-1.5 uppercase tracking-wider font-semibold">
+                            Cuotas: {i.paidInstallments} de {i.totalInstallments} pagadas • Tarjeta: <span className="text-zinc-450 font-bold">{i.cardAssociated || 'Tarjeta Principal'}</span>
+                          </p>
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-zinc-550 mt-2">
+                            <span>📅 Compra (F. Inicial): <strong className="text-zinc-350">{pDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</strong></span>
+                            <span>🏁 Proyección Fin: <strong className="text-amber-500/90 font-bold">{remaining > 0 ? finalDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }) : 'Liquidado'}</strong></span>
+                            <span>⏰ Cobro: <strong className="text-zinc-350">Día {i.paymentDay || 5}</strong></span>
+                          </div>
                         </div>
 
-                        <div className="flex gap-6 text-xs text-right items-center">
-                          <div>
-                            <p className="text-[10px] text-zinc-500 uppercase">Cuota Mensual</p>
-                            <p className="font-semibold text-white">{user.currency}{i.monthlyAmount}</p>
+                        <div className="flex flex-wrap sm:flex-nowrap gap-5 text-xs text-right items-center w-full xl:w-auto justify-between xl:justify-end border-t border-zinc-900 xl:border-0 pt-3 xl:pt-0">
+                          <div className="text-left md:text-right">
+                            <p className="text-[9px] text-zinc-500 uppercase tracking-widest">Cuota mensual</p>
+                            <p className="font-semibold text-zinc-200 mt-0.5">{user.currency}{i.monthlyAmount.toLocaleString()}</p>
                           </div>
-                          <div>
-                            <p className="text-[10px] text-zinc-500 uppercase">Saldo Pendiente</p>
-                            <p className="font-semibold text-amber-500">{user.currency}{balancePending.toLocaleString()}</p>
+                          <div className="text-left md:text-right font-mono">
+                            <p className="text-[9px] text-zinc-500 uppercase tracking-widest">Saldo Pendiente</p>
+                            <p className="font-semibold text-amber-500 mt-0.5">{user.currency}{balancePending.toLocaleString()}</p>
                           </div>
-                          <div>
-                            <p className="text-[10px] text-zinc-500 uppercase">Finalización Est.</p>
-                            <p className="font-semibold text-zinc-400">{finishDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'short' })}</p>
+                          <div className="text-left md:text-right">
+                            <p className="text-[9px] text-zinc-500 uppercase tracking-widest">Estado</p>
+                            <p className="font-semibold text-zinc-400 mt-0.5">{remaining} cuotas rest.</p>
                           </div>
 
-                          <button
-                            onClick={() => {
-                              const updated = installments.map(item => {
-                                if (item.id === i.id) {
-                                  return { ...item, paidInstallments: Math.min(item.totalInstallments, item.paidInstallments + 1) };
+                          <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0 justify-end">
+                            <button
+                              disabled={remaining === 0}
+                              onClick={() => {
+                                const updated = installments.map(item => {
+                                  if (item.id === i.id) {
+                                    return { ...item, paidInstallments: Math.min(item.totalInstallments, item.paidInstallments + 1) };
+                                  }
+                                  return item;
+                                });
+                                setInstallments(updated);
+                              }}
+                              className={`px-3 py-1.5 font-bold uppercase rounded-lg text-[9px] tracking-wider transition-all cursor-pointer ${
+                                remaining === 0 
+                                  ? 'bg-zinc-900 text-zinc-650 border border-zinc-905 cursor-not-allowed opacity-40'
+                                  : 'bg-amber-500/10 hover:bg-amber-500 border border-amber-500/20 text-amber-500 hover:text-black'
+                              }`}
+                            >
+                              {remaining === 0 ? 'Liquidada' : 'Pagar Cuota'}
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`¿Estás seguro de que deseas eliminar la compra de "${i.name}"?`)) {
+                                  setInstallments(prev => prev.filter(item => item.id !== i.id));
                                 }
-                                return item;
-                              });
-                              setInstallments(updated);
-                            }}
-                            className="px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-500 font-bold uppercase rounded text-[9px] hover:bg-amber-500 text-black hover:text-black transition-colors"
-                          >
-                            Pagar Cuota
-                          </button>
+                              }}
+                              className="px-2 py-1.5 bg-rose-500/10 hover:bg-rose-500 border border-rose-550/20 hover:border-rose-500 text-rose-500/80 hover:text-white font-bold uppercase rounded-lg text-[9px] tracking-wider transition-all cursor-pointer"
+                              title="Eliminar Compra"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
                   })}
+                  {installments.length === 0 && (
+                    <div className="p-8 text-center bg-zinc-950/40 rounded-xl border border-zinc-850/60 text-zinc-500 text-xs">
+                      No tienes compras financiadas registradas. Usa el formulario de abajo para registrar tu primera compra.
+                    </div>
+                  )}
                 </div>
 
                 {/* Form to add Installment */}
@@ -3055,55 +3210,112 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                   <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">Registrar Compra Financiada</h4>
                   <form onSubmit={handleAddManualInstallment} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-[10px] text-zinc-500 uppercase mb-1">Nombre del Gasto</label>
+                      <label className="block text-[10px] text-zinc-500 uppercase mb-1">Nombre de la Compra</label>
                       <input
                         required
                         type="text"
-                        placeholder="Smart TV 55 Inch"
+                        placeholder="Smart TV 55 Pulgadas"
                         value={newInstallment.name}
                         onChange={e => setNewInstallment(prev => ({...prev, name: e.target.value}))}
-                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2"
+                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2 text-zinc-200"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[10px] text-zinc-500 uppercase mb-1">Monto Total</label>
+                      <label className="block text-[10px] text-zinc-500 uppercase mb-1">Monto Total de la Compra</label>
                       <input
                         required
                         type="number"
                         placeholder="1200"
                         value={newInstallment.totalAmount}
                         onChange={e => setNewInstallment(prev => ({...prev, totalAmount: e.target.value}))}
-                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2"
+                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2 text-zinc-200"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[10px] text-zinc-500 uppercase mb-1">Cuota Mensual</label>
+                      <label className="block text-[10px] text-zinc-500 uppercase mb-1">Monto Cuota Mensual</label>
                       <input
                         required
                         type="number"
                         placeholder="100"
                         value={newInstallment.monthlyAmount}
                         onChange={e => setNewInstallment(prev => ({...prev, monthlyAmount: e.target.value}))}
-                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2"
+                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2 text-zinc-200"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[10px] text-zinc-500 uppercase mb-1">Total Cuotas</label>
+                      <label className="block text-[10px] text-zinc-500 uppercase mb-1">Total de Cuotas Pactadas</label>
                       <input
                         required
                         type="number"
                         placeholder="12"
                         value={newInstallment.totalInstallments}
                         onChange={e => setNewInstallment(prev => ({...prev, totalInstallments: e.target.value}))}
-                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2"
+                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2 text-zinc-200"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[10px] text-zinc-500 uppercase mb-1">Día de Pago Fijo</label>
+                      <label className="block text-[10px] text-zinc-500 uppercase mb-1">Fecha de Compra (Inicio)</label>
+                      <input
+                        required
+                        type="date"
+                        value={newInstallment.purchaseDate}
+                        onChange={e => setNewInstallment(prev => ({...prev, purchaseDate: e.target.value}))}
+                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2 text-zinc-200"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] text-zinc-500 uppercase mb-1">Cuotas ya Pagadas hasta hoy</label>
+                      <input
+                        required
+                        type="number"
+                        min="0"
+                        max={newInstallment.totalInstallments || "100"}
+                        placeholder="0"
+                        value={newInstallment.paidInstallments}
+                        onChange={e => setNewInstallment(prev => ({...prev, paidInstallments: e.target.value}))}
+                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2 text-zinc-200"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] text-zinc-500 uppercase mb-1">Tarjeta de Crédito Asociada</label>
+                      <select
+                        value={newInstallment.cardAssociated}
+                        onChange={e => setNewInstallment(prev => ({...prev, cardAssociated: e.target.value}))}
+                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2 text-zinc-200"
+                      >
+                        <option value="Tarjeta Principal">Tarjeta Principal</option>
+                        {creditCards.map(cc => (
+                          <option key={cc.id} value={cc.name}>{cc.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] text-zinc-500 uppercase mb-1">Categoría del Gasto</label>
+                      <select
+                        value={newInstallment.category}
+                        onChange={e => setNewInstallment(prev => ({...prev, category: e.target.value}))}
+                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2 text-zinc-200"
+                      >
+                        <option value="Entretenimiento">Entretenimiento</option>
+                        <option value="Alimentación">Alimentación</option>
+                        <option value="Vivienda">Vivienda</option>
+                        <option value="Transporte">Transporte</option>
+                        <option value="Servicios">Servicios</option>
+                        <option value="Deudas">Deudas</option>
+                        <option value="Tecnología">Tecnología</option>
+                        <option value="Otros">Otros</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] text-zinc-500 uppercase mb-1">Día de Pago Fijo Mensual</label>
                       <input
                         type="number"
                         min="1"
@@ -3111,19 +3323,46 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                         placeholder="5"
                         value={newInstallment.paymentDay}
                         onChange={e => setNewInstallment(prev => ({...prev, paymentDay: e.target.value}))}
-                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2"
+                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2 text-zinc-200"
                       />
                     </div>
 
-                    <div>
+                    <div className="md:col-span-3">
                       <button
                         type="submit"
-                        className="w-full h-full py-2 bg-zinc-800 hover:bg-zinc-750 text-amber-500 font-semibold rounded-lg text-xs uppercase cursor-pointer"
+                        className="w-full py-2.5 bg-zinc-805 hover:bg-zinc-800 text-amber-500 hover:text-amber-400 font-bold border border-zinc-800 rounded-xl text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer"
                       >
-                        Crear Amortización
+                        Registrar Compra Financiada
                       </button>
                     </div>
                   </form>
+
+                  {/* Dynamic projection summary */}
+                  {newInstallment.purchaseDate && newInstallment.totalInstallments && (
+                    <div className="mt-4 p-3 bg-zinc-950/40 rounded-xl border border-zinc-850 text-[11px] text-zinc-400 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
+                      <div>
+                        <span>Proyección del Pago: Se cobrará mensualmente los días <strong>{newInstallment.paymentDay || '5'}</strong> desde <strong>{(() => {
+                          const parts = newInstallment.purchaseDate.split('-');
+                          const y = parseInt(parts[0], 10);
+                          const m = parseInt(parts[1], 10);
+                          const d = parseInt(parts[2], 10) || 1;
+                          return new Date(y, m - 1, d).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+                        })()}</strong> hasta <strong>{(() => {
+                          const parts = newInstallment.purchaseDate.split('-');
+                          const y = parseInt(parts[0], 10);
+                          const m = parseInt(parts[1], 10);
+                          const d = parseInt(parts[2], 10) || 1;
+                          const total = parseInt(newInstallment.totalInstallments, 10) || 1;
+                          const paid = parseInt(newInstallment.paidInstallments, 10) || 0;
+                          const remaining = Math.max(1, total - paid);
+                          const finish = new Date(y, m - 1, d);
+                          finish.setMonth(finish.getMonth() + remaining - 1);
+                          return finish.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+                        })()}</strong> ({Math.max(0, (parseInt(newInstallment.totalInstallments, 10) || 1) - (parseInt(newInstallment.paidInstallments, 10) || 0))} cuotas restantes).</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
