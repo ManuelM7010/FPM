@@ -574,15 +574,38 @@ export default function App() {
     const savingsRate = totalIncomeMonth > 0 ? (monthlySavings / totalIncomeMonth) * 100 : 0;
 
     // Assets = cash in banks + user investments
-    const bankCashSum = bankAccounts.reduce((sum, ba) => sum + ba.balance, 0);
+    const currentBankCashSum = bankAccounts.reduce((sum, ba) => sum + ba.balance, 0);
+    let bankCashSum = currentBankCashSum;
+    if (customDataStarted) {
+      const futureTxs = transactions.filter(t => {
+        const parts = t.date.split('-');
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        return y > currentYear || (y === currentYear && m > currentMonth);
+      });
+      const futureNetFlow = futureTxs.reduce((sum, t) => sum + (t.type === 'ingreso' ? t.amount : -t.amount), 0);
+      bankCashSum = Math.max(0, currentBankCashSum - futureNetFlow);
+    }
     const goalInvestmentsSum = goals.reduce((sum, g) => sum + g.currentAmount, 0);
     const assetsVal = bankCashSum + goalInvestmentsSum;
 
-    // Passives = outstanding debt & installments
+    // Passives = outstanding debt & installments at selected month
     let passivesVal = 0;
     installments.forEach(i => {
-      const remainingInstallments = i.totalInstallments - i.paidInstallments;
-      passivesVal += remainingInstallments * i.monthlyAmount;
+      const parts = i.startDate.split('-');
+      const startYear = parseInt(parts[0], 10);
+      const startMonth = parseInt(parts[1], 10);
+      const elapsed = (currentYear - startYear) * 12 + (currentMonth - startMonth);
+      
+      let remaining = 0;
+      if (elapsed < 0) {
+        remaining = i.totalInstallments;
+      } else if (elapsed < i.totalInstallments) {
+        remaining = i.totalInstallments - elapsed;
+      } else {
+        remaining = 0;
+      }
+      passivesVal += remaining * i.monthlyAmount;
     });
 
     const netWorth = Math.max(0, assetsVal - passivesVal);
@@ -759,6 +782,18 @@ export default function App() {
     });
   }, [user, computedMetrics]);
 
+  // Dynamic starting balance of selected month (chronological calculation based on bank accounts and ledger)
+  const startingBalanceOfSelectedMonth = useMemo(() => {
+    if (!customDataStarted) {
+      return Math.max(0, computedMetrics.availableBalance + 1000);
+    }
+    const bankCashSum = bankAccounts.reduce((sum, ba) => sum + ba.balance, 0);
+    const targetDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+    const postAndCurrentTxs = transactions.filter(t => t.date >= targetDate);
+    const postAndCurrentNetFlow = postAndCurrentTxs.reduce((sum, t) => sum + (t.type === 'ingreso' ? t.amount : -t.amount), 0);
+    return bankCashSum - postAndCurrentNetFlow;
+  }, [customDataStarted, currentYear, currentMonth, bankAccounts, transactions, computedMetrics.availableBalance, computedMetrics.bankCashSum]);
+
   // Daily projection data for the selected month to show interactive day-by-day cashflow
   const monthlyDailyData = useMemo(() => {
     const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
@@ -828,7 +863,7 @@ export default function App() {
       ...projectedTx
     ];
 
-    let runningAccumPrice = 0;
+    let runningAccumPrice = startingBalanceOfSelectedMonth;
     
     for (let d = 1; d <= daysInMonth; d++) {
       const dayStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -848,7 +883,7 @@ export default function App() {
     }
 
     return data;
-  }, [currentYear, currentMonth, transactions, recurringExpenses, installments, creditCards, computedMetrics.cardBills]);
+  }, [currentYear, currentMonth, transactions, recurringExpenses, installments, creditCards, computedMetrics.cardBills, startingBalanceOfSelectedMonth]);
 
   // Excel & CSV Processing functions
   const handleCsvFileDropped = (e: React.DragEvent<HTMLDivElement>) => {
@@ -1224,7 +1259,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
   // Intelligent Financial Calendar items builder
   const calendarItems = useMemo(() => {
     const days = Array.from({ length: 30 }, (_, i) => i + 1);
-    let runningBalance = customDataStarted ? computedMetrics.bankCashSum : (computedMetrics.availableBalance + 1000);
+    let runningBalance = startingBalanceOfSelectedMonth;
 
     return days.map(day => {
       const dayTransactions: any[] = [];
@@ -1280,7 +1315,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
         projectedBalance: Math.round(runningBalance)
       };
     });
-  }, [user, recurringExpenses, installments, computedMetrics]);
+  }, [user, recurringExpenses, installments, computedMetrics, startingBalanceOfSelectedMonth]);
 
   // Handle addition functions
   const handleAddManualTransaction = (e: React.FormEvent) => {
@@ -2442,6 +2477,9 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                               cats[tx.category] = (cats[tx.category] || 0) + tx.amount;
                             });
                           } else {
+                            if (customDataStarted) {
+                              return [{ name: 'Sin Gastos', value: 1 }];
+                            }
                             // Fallback to average representation if chosen month has no items yet
                             transactions.filter(t => t.type === 'gasto').forEach(tx => {
                               cats[tx.category] = (cats[tx.category] || 0) + tx.amount;
@@ -2456,11 +2494,18 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                         paddingAngle={5}
                         dataKey="value"
                       >
-                        {['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#6366f1', '#a855f7', '#14b8a6', '#f43f5e'].map((color, index) => (
-                          <Cell key={`cell-${index}`} fill={color} />
-                        ))}
+                        {(() => {
+                          const monthStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+                          const targetTxs = transactions.filter(t => t.type === 'gasto' && t.date.startsWith(monthStr));
+                          if (targetTxs.length === 0 && customDataStarted) {
+                            return <Cell key="cell-empty" fill="#27272a" />;
+                          }
+                          return ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#6366f1', '#a855f7', '#14b8a6', '#f43f5e'].map((color, index) => (
+                            <Cell key={`cell-${index}`} fill={color} />
+                          ));
+                        })()}
                       </Pie>
-                      <Tooltip contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a' }} />
+                      <Tooltip contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', color: '#fafafa' }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -2469,7 +2514,10 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                   {(() => {
                     const monthStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
                     const items = transactions.filter(t => t.type === 'gasto' && t.date.startsWith(monthStr));
-                    const sourceList = items.length > 0 ? items : transactions.filter(t => t.type === 'gasto');
+                    const sourceList = items.length > 0 ? items : (customDataStarted ? [] : transactions.filter(t => t.type === 'gasto'));
+                    if (sourceList.length === 0) {
+                      return <div className="text-zinc-500 italic py-2 col-span-2 text-center w-full">Sin categorías de gasto este mes</div>;
+                    }
                     return Array.from(new Set(sourceList.map(t => t.category))).slice(0, 4).map((c, i) => (
                       <div key={c} className="flex items-center gap-1.5 text-zinc-400">
                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#6366f1'][i % 5] }}></div>
@@ -3223,8 +3271,9 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
 
                 <div className="space-y-5">
                   {budgets.map(b => {
+                    const monthStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
                     const spentForCat = transactions
-                      .filter(t => t.type === 'gasto' && t.category === b.category)
+                      .filter(t => t.type === 'gasto' && t.category === b.category && t.date.startsWith(monthStr))
                       .reduce((sum, current) => sum + current.amount, 0);
                     
                     const pct = Math.round((spentForCat / b.limit) * 100) || 0;
