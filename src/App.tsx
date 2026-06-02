@@ -16,6 +16,7 @@ import {
   ShieldAlert,
   Lightbulb,
   Layers,
+  Target,
   PieChart as PieIcon,
   LogOut,
   RefreshCw,
@@ -98,27 +99,32 @@ export default function App() {
   // Core entity states
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     const saved = localStorage.getItem('fpm_transactions');
-    return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
+    const isCustom = localStorage.getItem('fpm_custom_data_started') === 'true';
+    return saved ? JSON.parse(saved) : (isCustom ? [] : INITIAL_TRANSACTIONS);
   });
 
   const [installments, setInstallments] = useState<Installment[]>(() => {
     const saved = localStorage.getItem('fpm_installments');
-    return saved ? JSON.parse(saved) : INITIAL_INSTALLMENTS;
+    const isCustom = localStorage.getItem('fpm_custom_data_started') === 'true';
+    return saved ? JSON.parse(saved) : (isCustom ? [] : INITIAL_INSTALLMENTS);
   });
 
   const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>(() => {
     const saved = localStorage.getItem('fpm_recurring');
-    return saved ? JSON.parse(saved) : INITIAL_RECURRING_EXPENSES;
+    const isCustom = localStorage.getItem('fpm_custom_data_started') === 'true';
+    return saved ? JSON.parse(saved) : (isCustom ? [] : INITIAL_RECURRING_EXPENSES);
   });
 
   const [budgets, setBudgets] = useState<Budget[]>(() => {
     const saved = localStorage.getItem('fpm_budgets');
-    return saved ? JSON.parse(saved) : DEFAULT_BUDGETS;
+    const isCustom = localStorage.getItem('fpm_custom_data_started') === 'true';
+    return saved ? JSON.parse(saved) : (isCustom ? DEFAULT_BUDGETS.map(b => ({ ...b, limit: 0 })) : DEFAULT_BUDGETS);
   });
 
   const [goals, setGoals] = useState<FinancialGoal[]>(() => {
     const saved = localStorage.getItem('fpm_goals');
-    return saved ? JSON.parse(saved) : INITIAL_GOALS;
+    const isCustom = localStorage.getItem('fpm_custom_data_started') === 'true';
+    return saved ? JSON.parse(saved) : (isCustom ? [] : INITIAL_GOALS);
   });
 
   // Assistant & Chat States
@@ -163,18 +169,22 @@ export default function App() {
   // Dynamic customization states (Multiple Cards, Categories, Month pointer, Scenarios editing)
   const [creditCards, setCreditCards] = useState<any[]>(() => {
     const saved = localStorage.getItem('fpm_credit_cards');
-    return saved ? JSON.parse(saved) : [
+    const isCustom = localStorage.getItem('fpm_custom_data_started') === 'true';
+    return saved ? JSON.parse(saved) : (isCustom ? [] : [
       { id: 'cc-1', name: 'Visa Oro', closingDay: 15, paymentDay: 5, limit: 3000 },
       { id: 'cc-2', name: 'Mastercard Black', closingDay: 20, paymentDay: 10, limit: 5000 }
-    ];
+    ]);
   });
 
   const [bankAccounts, setBankAccounts] = useState<any[]>(() => {
     const saved = localStorage.getItem('fpm_bank_accounts');
-    return saved ? JSON.parse(saved) : [
+    const isCustom = localStorage.getItem('fpm_custom_data_started') === 'true';
+    return saved ? JSON.parse(saved) : (isCustom ? [
+      { id: 'ba-default', name: 'Efectivo / Cuenta Principal', balance: 0 }
+    ] : [
       { id: 'ba-1', name: 'Cuenta Corriente', balance: 4500 },
       { id: 'ba-2', name: 'Ahorros Coope', balance: 1200 }
-    ];
+    ]);
   });
 
   const [newBankAccount, setNewBankAccount] = useState({
@@ -233,6 +243,11 @@ export default function App() {
     income: '',
     expense: '',
     account: 'Efectivo'
+  });
+
+  const [newBudgetForm, setNewBudgetForm] = useState({
+    category: 'Alimentación',
+    limit: ''
   });
 
   const [newInstallment, setNewInstallment] = useState({
@@ -467,8 +482,8 @@ export default function App() {
     let totalIncomeMonth = monthIncomes.reduce((sum, t) => sum + t.amount, 0);
     let totalExpenseMonth = monthExpenses.reduce((sum, t) => sum + t.amount, 0);
 
-    // If no manual income is added, baseline user.salary as base income (projected)
-    if (totalIncomeMonth === 0) {
+    // If no manual income is added, baseline user.salary as base income (projected if in demo mode)
+    if (totalIncomeMonth === 0 && !customDataStarted) {
       totalIncomeMonth = user.salary;
     }
 
@@ -574,7 +589,7 @@ export default function App() {
 
     // Emergency fund totals tracked under Goals
     const emergencyFundObj = goals.find(g => g.category === 'Fondo de Emergencia');
-    const emergencyFundTotal = emergencyFundObj ? emergencyFundObj.currentAmount : (user.salary * 1.5);
+    const emergencyFundTotal = emergencyFundObj ? emergencyFundObj.currentAmount : (customDataStarted ? 0 : (user.salary * 1.5));
     
     // Average daily expense
     const dailyExpense = Math.max(1, totalExpenseMonth / 30);
@@ -1209,7 +1224,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
   // Intelligent Financial Calendar items builder
   const calendarItems = useMemo(() => {
     const days = Array.from({ length: 30 }, (_, i) => i + 1);
-    let runningBalance = computedMetrics.availableBalance + 1000; // start seed for preview
+    let runningBalance = customDataStarted ? computedMetrics.bankCashSum : (computedMetrics.availableBalance + 1000);
 
     return days.map(day => {
       const dayTransactions: any[] = [];
@@ -1219,7 +1234,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                           user?.paymentFrequency === 'Quincenal' && (day === 15 || day === 30) ||
                           user?.paymentFrequency === 'Semanal' && (day % 7 === 0);
 
-      if (isSalaryDay && user) {
+      if (isSalaryDay && user && !customDataStarted) {
         let earned = user.salary;
         if (user.paymentFrequency === 'Quincenal') earned = user.salary / 2;
         if (user.paymentFrequency === 'Semanal') earned = user.salary / 4;
@@ -1397,6 +1412,30 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
 
       alert(`¡Resumen mensual de ${monthName} ${year} registrado exitosamente! Se configuró el visualizador en este período para que observes los resultados.`);
     }
+  };
+
+  const handleQuickBudgetUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    const limitAmount = parseFloat(newBudgetForm.limit) || 0;
+    const cat = newBudgetForm.category;
+
+    if (limitAmount < 0) {
+      alert("Por favor ingresa un límite de presupuesto válido (mayor o igual a cero).");
+      return;
+    }
+
+    setBudgets(prev => {
+      // If category already exists in budgets, update it. If not, append it.
+      const exists = prev.some(b => b.category === cat);
+      if (exists) {
+        return prev.map(b => b.category === cat ? { ...b, limit: limitAmount } : b);
+      } else {
+        return [...prev, { category: cat, limit: limitAmount }];
+      }
+    });
+
+    setNewBudgetForm(prev => ({ ...prev, limit: '' }));
+    alert(`¡Presupuesto para "${cat}" establecido en ${user.currency}${limitAmount.toLocaleString()} exitosamente!`);
   };
 
   const handleClearAllDataForcefully = () => {
@@ -3167,12 +3206,19 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
               
               {/* BUDGETS SETTINGS */}
               <div className="lg:col-span-6 bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex justify-between items-center mb-4">
                   <div>
                     <h3 className="text-sm font-semibold text-zinc-200">Presupuestos por Categorías</h3>
-                    <p className="text-[10px] text-zinc-500 uppercase mt-0.5">Control de Límites Mensuales</p>
+                    <p className="text-[10px] text-zinc-500 uppercase mt-0.5 font-bold tracking-wider">Control de Límites Mensuales</p>
                   </div>
                   <HelpCircle className="w-4 h-4 text-zinc-500" />
+                </div>
+
+                <div className="mb-5 p-3 bg-zinc-950/40 rounded-xl border border-zinc-850 text-[11px] text-zinc-400 leading-normal flex items-start gap-2">
+                  <span className="text-amber-500 font-bold shrink-0">💡 Ayuda:</span>
+                  <span>
+                    Configura el límite para cada categoría haciendo clic en el botón <strong className="text-amber-500">Ajustar ✏️</strong> al lado de cada ítem, o usa el <strong>formulario rápido de abajo</strong>.
+                  </span>
                 </div>
 
                 <div className="space-y-5">
@@ -3189,38 +3235,38 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                     return (
                       <div key={b.category} className="space-y-1.5">
                         {isEditing ? (
-                          <div className="flex justify-between items-center text-xs font-semibold">
-                            <span className="text-zinc-300">{b.category}</span>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-zinc-400">{user.currency}</span>
-                              <input
-                                type="number"
-                                className="w-24 bg-zinc-950 text-xs text-white border border-zinc-800 rounded px-1.5 py-0.5 font-mono focus:outline-none"
-                                defaultValue={b.limit}
-                                onKeyDown={e => {
-                                  if (e.key === 'Enter') {
-                                    const targetVal = parseFloat((e.target as HTMLInputElement).value) || 0;
-                                    setBudgets(prev => prev.map(item => item.category === b.category ? { ...item, limit: targetVal } : item));
-                                    setEditingBudgetCategory(null);
-                                  } else if (e.key === 'Escape') {
-                                    setEditingBudgetCategory(null);
-                                  }
-                                }}
-                                onBlur={e => {
-                                  const targetVal = parseFloat((e.target as HTMLInputElement).value) || 0;
-                                  setBudgets(prev => prev.map(item => item.category === b.category ? { ...item, limit: targetVal } : item));
-                                  setEditingBudgetCategory(null);
-                                }}
-                                autoFocus
-                              />
-                              <button
-                                onClick={() => setEditingBudgetCategory(null)}
-                                className="text-emerald-500 hover:text-emerald-400 p-0.5 cursor-pointer"
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
+                           <div className="flex justify-between items-center text-xs font-semibold">
+                             <span className="text-zinc-300 font-bold">{b.category}</span>
+                             <div className="flex items-center gap-1.5 bg-zinc-950 px-2 py-1 rounded border border-amber-500/50">
+                               <span className="text-amber-500 font-mono font-bold">{user.currency}</span>
+                               <input
+                                 type="number"
+                                 className="w-24 bg-transparent text-xs text-white border-0 font-mono focus:outline-none"
+                                 defaultValue={b.limit}
+                                 onKeyDown={e => {
+                                   if (e.key === 'Enter') {
+                                     const targetVal = parseFloat((e.target as HTMLInputElement).value) || 0;
+                                     setBudgets(prev => prev.map(item => item.category === b.category ? { ...item, limit: targetVal } : item));
+                                     setEditingBudgetCategory(null);
+                                   } else if (e.key === 'Escape') {
+                                     setEditingBudgetCategory(null);
+                                   }
+                                 }}
+                                 onBlur={e => {
+                                   const targetVal = parseFloat((e.target as HTMLInputElement).value) || 0;
+                                   setBudgets(prev => prev.map(item => item.category === b.category ? { ...item, limit: targetVal } : item));
+                                   setEditingBudgetCategory(null);
+                                 }}
+                                 autoFocus
+                               />
+                               <button
+                                 onClick={() => setEditingBudgetCategory(null)}
+                                 className="text-emerald-500 hover:text-emerald-400 p-0.5 cursor-pointer"
+                               >
+                                 <Check className="w-3.5 h-3.5" />
+                               </button>
+                             </div>
+                           </div>
                         ) : (
                           <div className="flex justify-between items-center text-xs font-semibold group">
                             <span className="text-zinc-300">{b.category}</span>
@@ -3230,10 +3276,11 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                               </span>
                               <button
                                 onClick={() => setEditingBudgetCategory(b.category)}
-                                className="text-zinc-500 hover:text-amber-500 opacity-60 md:opacity-0 group-hover:opacity-100 transition-opacity p-0.5 cursor-pointer"
+                                className="text-zinc-300 hover:text-amber-500 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 p-1.5 px-2 rounded-lg flex items-center gap-1 cursor-pointer transition-all text-[9.5px] uppercase tracking-wider font-bold shrink-0"
                                 title="Editar presupuesto"
                               >
-                                <Pencil className="w-3 h-3" />
+                                <Pencil className="w-2.5 h-2.5 text-amber-500" />
+                                <span>Ajustar</span>
                               </button>
                             </div>
                           </div>
@@ -3253,6 +3300,55 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                       </div>
                     );
                   })}
+                </div>
+
+                {/* Quick set budget form */}
+                <div className="mt-8 pt-6 border-t border-zinc-800">
+                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    <Target className="w-4 h-4 text-emerald-500" />
+                    <span>Establecer Límite Rápido</span>
+                  </h4>
+                  <p className="text-[10px] text-zinc-500 leading-normal mb-4">
+                    Elige una categoría de gasto de la lista para fijar o modificar su límite de presupuesto mensual inmediatamente.
+                  </p>
+                  
+                  <form onSubmit={handleQuickBudgetUpdate} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="text-xs">
+                      <label className="block text-[9px] text-zinc-400 uppercase font-bold mb-1">Categoría</label>
+                      <select
+                        value={newBudgetForm.category}
+                        onChange={e => setNewBudgetForm(prev => ({ ...prev, category: e.target.value }))}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-zinc-250 text-xs focus:ring-1 focus:ring-amber-500 cursor-pointer"
+                      >
+                        {budgets.map(b => (
+                          <option key={`quick-sel-bud-${b.category}`} value={b.category}>{b.category}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="text-xs">
+                      <label className="block text-[9px] text-zinc-400 uppercase font-bold mb-1">Límite Mensual ({user.currency})</label>
+                      <input
+                        required
+                        type="number"
+                        min="0"
+                        placeholder="e.g. 350"
+                        value={newBudgetForm.limit}
+                        onChange={e => setNewBudgetForm(prev => ({ ...prev, limit: e.target.value }))}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-zinc-100 text-xs font-mono focus:ring-1 focus:ring-amber-500"
+                      />
+                    </div>
+
+                    <div className="flex items-end">
+                      <button
+                        type="submit"
+                        className="w-full py-2 bg-gradient-to-r from-emerald-500/10 to-emerald-500/20 hover:from-emerald-500/20 hover:to-emerald-500/30 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-400 hover:text-emerald-300 font-bold rounded-lg text-[10px] uppercase tracking-wider cursor-pointer transition-all flex items-center justify-center gap-1"
+                      >
+                        <Check className="w-3 h-3" />
+                        <span>Guardar Límite</span>
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </div>
 
