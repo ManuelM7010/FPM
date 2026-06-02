@@ -575,17 +575,14 @@ export default function App() {
 
     // Assets = cash in banks + user investments
     const currentBankCashSum = bankAccounts.reduce((sum, ba) => sum + ba.balance, 0);
-    let bankCashSum = currentBankCashSum;
-    if (customDataStarted) {
-      const futureTxs = transactions.filter(t => {
-        const parts = t.date.split('-');
-        const y = parseInt(parts[0], 10);
-        const m = parseInt(parts[1], 10);
-        return y > currentYear || (y === currentYear && m > currentMonth);
-      });
-      const futureNetFlow = futureTxs.reduce((sum, t) => sum + (t.type === 'ingreso' ? t.amount : -t.amount), 0);
-      bankCashSum = Math.max(0, currentBankCashSum - futureNetFlow);
-    }
+    const futureTxs = transactions.filter(t => {
+      const parts = t.date.split('-');
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      return y > currentYear || (y === currentYear && m > currentMonth);
+    });
+    const futureNetFlow = futureTxs.reduce((sum, t) => sum + (t.type === 'ingreso' ? t.amount : -t.amount), 0);
+    const bankCashSum = Math.max(0, currentBankCashSum - futureNetFlow);
     const goalInvestmentsSum = goals.reduce((sum, g) => sum + g.currentAmount, 0);
     const assetsVal = bankCashSum + goalInvestmentsSum;
 
@@ -782,8 +779,39 @@ export default function App() {
     });
   }, [user, computedMetrics]);
 
+  // Historically adjusted bank balances for the selected month (rolling back future transactions)
+  const monthAdjustedBankAccounts = useMemo(() => {
+    return bankAccounts.map(ba => {
+      const futureTxs = transactions.filter(t => {
+        // Loose check for account name match
+        const accountLower = (t.account || '').toLowerCase().trim();
+        const baLower = ba.name.toLowerCase().trim();
+        const isMatch = accountLower === baLower || 
+                        accountLower.includes(baLower) || 
+                        baLower.includes(accountLower) ||
+                        (baLower.includes('corriente') && accountLower.includes('débito')) || // map debit card to checking/current account
+                        (baLower.includes('principal') && accountLower.includes('efectivo'));
+        if (!isMatch) return false;
+        
+        const parts = t.date.split('-');
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        return y > currentYear || (y === currentYear && m > currentMonth);
+      });
+      
+      const futureNetFlow = futureTxs.reduce((sum, t) => sum + (t.type === 'ingreso' ? t.amount : -t.amount), 0);
+      return {
+        ...ba,
+        balance: Math.max(0, ba.balance - futureNetFlow)
+      };
+    });
+  }, [bankAccounts, transactions, currentYear, currentMonth]);
+
   // Dynamic starting balance of selected month (chronological calculation based on bank accounts and ledger)
   const startingBalanceOfSelectedMonth = useMemo(() => {
+    if (currentYear === 2026 && currentMonth === 1) {
+      return 0;
+    }
     if (!customDataStarted) {
       return Math.max(0, computedMetrics.availableBalance + 1000);
     }
@@ -791,7 +819,7 @@ export default function App() {
     const targetDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
     const postAndCurrentTxs = transactions.filter(t => t.date >= targetDate);
     const postAndCurrentNetFlow = postAndCurrentTxs.reduce((sum, t) => sum + (t.type === 'ingreso' ? t.amount : -t.amount), 0);
-    return bankCashSum - postAndCurrentNetFlow;
+    return Math.max(0, bankCashSum - postAndCurrentNetFlow);
   }, [customDataStarted, currentYear, currentMonth, bankAccounts, transactions, computedMetrics.availableBalance, computedMetrics.bankCashSum]);
 
   // Daily projection data for the selected month to show interactive day-by-day cashflow
@@ -873,6 +901,9 @@ export default function App() {
       const dayExpenses = dayItems.filter(item => item.type === 'gasto').reduce((s, x) => s + x.amount, 0);
       
       runningAccumPrice += (dayIncomes - dayExpenses);
+      if (runningAccumPrice < 0) {
+        runningAccumPrice = 0;
+      }
       
       data.push({
         day: `Día ${d}`,
@@ -1308,6 +1339,10 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
           runningBalance -= ins.monthlyAmount;
         }
       });
+
+      if (runningBalance < 0) {
+        runningBalance = 0;
+      }
 
       return {
         day,
@@ -2334,7 +2369,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                   </div>
                   
                   <div className="space-y-3 max-h-[160px] overflow-y-auto pr-1">
-                    {bankAccounts.map(ba => (
+                    {monthAdjustedBankAccounts.map(ba => (
                       <div key={ba.id} className="p-3 bg-zinc-950/40 rounded-xl border border-zinc-850 flex justify-between items-center text-xs">
                         <div>
                           <p className="font-semibold text-zinc-200">{ba.name}</p>
@@ -2345,7 +2380,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                         </p>
                       </div>
                     ))}
-                    {bankAccounts.length === 0 && (
+                    {monthAdjustedBankAccounts.length === 0 && (
                       <div className="text-center text-zinc-550 text-xs py-5 font-mono">
                         No hay cuentas bancarias registradas. Ve a la pestaña Cuotas & Recurrentes para agregar una.
                       </div>
@@ -2356,7 +2391,7 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                 <div className="mt-4 pt-3 border-t border-zinc-850 flex justify-between items-center">
                   <p className="text-[10px] uppercase font-bold text-zinc-500">Total Disponible</p>
                   <p className="font-mono font-black text-emerald-400 text-sm">
-                    {user.currency}{bankAccounts.reduce((sum, ba) => sum + ba.balance, 0).toLocaleString()}
+                    {user.currency}{monthAdjustedBankAccounts.reduce((sum, ba) => sum + ba.balance, 0).toLocaleString()}
                   </p>
                 </div>
               </div>
