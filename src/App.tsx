@@ -227,6 +227,14 @@ export default function App() {
     comments: ''
   });
 
+  const [newMonthlyTotals, setNewMonthlyTotals] = useState({
+    year: 2026,
+    month: 1,
+    income: '',
+    expense: '',
+    account: 'Efectivo'
+  });
+
   const [newInstallment, setNewInstallment] = useState({
     name: '',
     category: 'Entretenimiento',
@@ -338,22 +346,47 @@ export default function App() {
 
     setUser(newUser);
 
-    // Bootstrap an automatic emergency fund goal based on salary and multiplier
-    const emergencyTarget = (salary * desiredEmergencyFundMonths) * 0.75; // 75% of salary represents basic expenses
-    const autoEmergencyGoal: FinancialGoal = {
-      id: "goal_auto_emergency",
-      name: "Fondo Emergencia de Seguridad",
-      targetAmount: emergencyTarget,
-      currentAmount: (salary * 0.5) || 1500, // starting seed
-      category: "Fondo de Emergencia",
-      targetDate: new Date(new Date().setMonth(new Date().getMonth() + 10)).toISOString().split('T')[0]
-    };
+    const cleanDb = formData.get('clean_db') === 'on';
+    if (cleanDb) {
+      setTransactions([]);
+      setInstallments([]);
+      setRecurringExpenses([]);
+      setGoals([]);
+      setCreditCards([]);
+      setBankAccounts([
+        { id: 'ba-default', name: 'Efectivo / Cuenta Principal', balance: 0 }
+      ]);
+      setBudgets(DEFAULT_BUDGETS.map(b => ({ ...b, limit: 0 })));
+      
+      localStorage.setItem('fpm_transactions', JSON.stringify([]));
+      localStorage.setItem('fpm_installments', JSON.stringify([]));
+      localStorage.setItem('fpm_recurring', JSON.stringify([]));
+      localStorage.setItem('fpm_budgets', JSON.stringify(DEFAULT_BUDGETS.map(b => ({ ...b, limit: 0 }))));
+      localStorage.setItem('fpm_goals', JSON.stringify([]));
+      localStorage.setItem('fpm_credit_cards', JSON.stringify([]));
+      localStorage.setItem('fpm_bank_accounts', JSON.stringify([
+        { id: 'ba-default', name: 'Efectivo / Cuenta Principal', balance: 0 }
+      ]));
+      setCustomDataStarted(true);
+      localStorage.setItem('fpm_custom_data_started', 'true');
+    } else {
+      // Bootstrap an automatic emergency fund goal based on salary and multiplier
+      const emergencyTarget = (salary * desiredEmergencyFundMonths) * 0.75; // 75% of salary represents basic expenses
+      const autoEmergencyGoal: FinancialGoal = {
+        id: "goal_auto_emergency",
+        name: "Fondo Emergencia de Seguridad",
+        targetAmount: emergencyTarget,
+        currentAmount: (salary * 0.5) || 1500, // starting seed
+        category: "Fondo de Emergencia",
+        targetDate: new Date(new Date().setMonth(new Date().getMonth() + 10)).toISOString().split('T')[0]
+      };
 
-    // Update goals state
-    setGoals(prev => {
-      if (prev.some(g => g.id === "goal_auto_emergency")) return prev;
-      return [...prev, autoEmergencyGoal];
-    });
+      // Update goals state
+      setGoals(prev => {
+        if (prev.some(g => g.id === "goal_auto_emergency")) return prev;
+        return [...prev, autoEmergencyGoal];
+      });
+    }
 
     setNarrativeText("");
   };
@@ -1282,6 +1315,117 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
     alert('¡Transacción registrada con éxito!');
   };
 
+  const handleAddMonthlyConsolidatedTotals = (e: React.FormEvent) => {
+    e.preventDefault();
+    const incAmount = parseFloat(newMonthlyTotals.income) || 0;
+    const expAmount = parseFloat(newMonthlyTotals.expense) || 0;
+    const year = parseInt(String(newMonthlyTotals.year)) || 2026;
+    const month = parseInt(String(newMonthlyTotals.month)) || 1;
+    const account = newMonthlyTotals.account || 'Efectivo';
+
+    if (incAmount <= 0 && expAmount <= 0) {
+      alert("Por favor ingresa un monto mayor a cero para ingresos o gastos.");
+      return;
+    }
+
+    const monthNames = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    const monthName = monthNames[month - 1];
+    const paddedMonth = String(month).padStart(2, '0');
+
+    const createdTxs: Transaction[] = [];
+
+    // 1. Consolidated Income Transaction
+    if (incAmount > 0) {
+      createdTxs.push({
+        id: `tx-inc-consolidated-${Date.now()}-${year}-${month}`,
+        date: `${year}-${paddedMonth}-05`, // e.g. 5th of that month
+        description: `Ingresos Consolidados - ${monthName} ${year}`,
+        category: 'Ingresos',
+        type: 'ingreso',
+        amount: incAmount,
+        account: account,
+        comments: `Carga rápida resumen mensual para ${monthName} ${year}`
+      });
+    }
+
+    // 2. Consolidated Expense Transaction
+    if (expAmount > 0) {
+      createdTxs.push({
+        id: `tx-exp-consolidated-${Date.now() + 1}-${year}-${month}`,
+        date: `${year}-${paddedMonth}-25`, // e.g. 25th of that month
+        description: `Gastos Consolidados - ${monthName} ${year}`,
+        category: 'Otros',
+        type: 'gasto',
+        amount: expAmount,
+        account: account,
+        comments: `Carga rápida de gastos consolidados para ${monthName} ${year}`
+      });
+    }
+
+    if (createdTxs.length > 0) {
+      // Add transactions to active list
+      setTransactions(prev => [...createdTxs, ...prev]);
+
+      // Apply bank balance adjustments:
+      const totalAdj = incAmount - expAmount; // positive if income is higher, negative if expenses are higher
+      const matchBA = bankAccounts.find(ba => account.includes(ba.name));
+      if (matchBA) {
+        setBankAccounts(prev => prev.map(ba => ba.id === matchBA.id ? { ...ba, balance: Math.max(0, ba.balance + totalAdj) } : ba));
+      } else if (account === 'Efectivo') {
+        // If they chose Efectivo, let's keep Efectivo bank account updated if it exists
+        const matchEfectivo = bankAccounts.find(ba => ba.name.toLowerCase().includes('efectivo'));
+        if (matchEfectivo) {
+          setBankAccounts(prev => prev.map(ba => ba.id === matchEfectivo.id ? { ...ba, balance: Math.max(0, ba.balance + totalAdj) } : ba));
+        }
+      }
+
+      markCustomDataStarted();
+      
+      // Reset inputs:
+      setNewMonthlyTotals(prev => ({
+        ...prev,
+        income: '',
+        expense: ''
+      }));
+
+      // Set the active viewing month on dashboard/table to make it immediately visible to the user!
+      setCurrentYear(year);
+      setCurrentMonth(month);
+
+      alert(`¡Resumen mensual de ${monthName} ${year} registrado exitosamente! Se configuró el visualizador en este período para que observes los resultados.`);
+    }
+  };
+
+  const handleClearAllDataForcefully = () => {
+    if (window.confirm("¿Seguro que deseas BORRAR ABSOLUTAMENTE TODOS los datos (transacciones, tarjetas, cuentas bancarias, cuotas y metas) y comenzar desde cero absoluto con tus propios datos? Esta acción es definitiva.")) {
+      setTransactions([]);
+      setInstallments([]);
+      setRecurringExpenses([]);
+      setGoals([]);
+      setCreditCards([]);
+      setBankAccounts([
+        { id: 'ba-default', name: 'Efectivo / Cuenta Principal', balance: 0 }
+      ]);
+      setBudgets(DEFAULT_BUDGETS.map(b => ({ ...b, limit: 0 })));
+      
+      localStorage.setItem('fpm_transactions', JSON.stringify([]));
+      localStorage.setItem('fpm_installments', JSON.stringify([]));
+      localStorage.setItem('fpm_recurring', JSON.stringify([]));
+      localStorage.setItem('fpm_budgets', JSON.stringify(DEFAULT_BUDGETS.map(b => ({ ...b, limit: 0 }))));
+      localStorage.setItem('fpm_goals', JSON.stringify([]));
+      localStorage.setItem('fpm_credit_cards', JSON.stringify([]));
+      localStorage.setItem('fpm_bank_accounts', JSON.stringify([
+        { id: 'ba-default', name: 'Efectivo / Cuenta Principal', balance: 0 }
+      ]));
+      setCustomDataStarted(true);
+      localStorage.setItem('fpm_custom_data_started', 'true');
+      alert("¡Se han borrado todos los datos reales y de simulación! Ahora puedes iniciar con tu propia contabilidad.");
+    }
+  };
+
   const handleAddManualInstallment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newInstallment.name || !newInstallment.totalAmount || !newInstallment.monthlyAmount || !newInstallment.totalInstallments) return;
@@ -1704,6 +1848,17 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                   <span>Fondos para Viajes</span>
                 </label>
               </div>
+            </div>
+
+            <div className="pt-2 bg-red-950/5 border border-red-900/10 rounded-2xl p-4 mt-2">
+              <label className="block text-xs font-bold text-red-400 uppercase mb-2">Base de Datos de Inicio</label>
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <input type="checkbox" name="clean_db" defaultChecked className="rounded border-zinc-805 bg-zinc-950 text-red-500 focus:ring-red-500 w-4 h-4 shrink-0" />
+                <div className="text-left">
+                  <p className="font-bold text-red-400 text-xs">Comenzar desde cero absoluto (Vacío)</p>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">Recomendado para uso real. Desmárcalo si prefieres cargar datos financieros de ejemplo para explorar la herramienta.</p>
+                </div>
+              </label>
             </div>
 
             <button
@@ -2594,110 +2749,222 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
             {/* MANUAL RECODRING LEDGER AND TABLE LISTS */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               
-              <div className="lg:col-span-4 bg-zinc-900/80 border border-zinc-800 rounded-2xl p-5">
-                <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">Registro Financiero Rápido</h3>
-                
-                <form onSubmit={handleAddManualTransaction} className="space-y-4">
-                  <div>
-                    <label className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">Descripción</label>
-                    <input
-                      required
-                      type="text"
-                      placeholder="Supermercado o Salario"
-                      value={newTx.description}
-                      onChange={e => setNewTx(prev => ({...prev, description: e.target.value}))}
-                      className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2.5"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
+              <div className="lg:col-span-4 space-y-6">
+                <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-5">
+                  <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">Registro Financiero Rápido</h3>
+                  
+                  <form onSubmit={handleAddManualTransaction} className="space-y-4">
                     <div>
-                      <label className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">Monto</label>
+                      <label className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">Descripción</label>
                       <input
                         required
-                        type="number"
-                        placeholder="75.00"
-                        value={newTx.amount}
-                        onChange={e => setNewTx(prev => ({...prev, amount: e.target.value}))}
+                        type="text"
+                        placeholder="Supermercado o Salario"
+                        value={newTx.description}
+                        onChange={e => setNewTx(prev => ({...prev, description: e.target.value}))}
                         className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2.5"
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">Tipo</label>
-                      <select
-                        value={newTx.type}
-                        onChange={e => setNewTx(prev => ({...prev, type: e.target.value}))}
-                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2.5"
-                      >
-                        <option value="gasto">Gasto / Salida</option>
-                        <option value="ingreso">Ingreso / Entrada</option>
-                      </select>
-                    </div>
-                  </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">Monto</label>
+                        <input
+                          required
+                          type="number"
+                          placeholder="75.00"
+                          value={newTx.amount}
+                          onChange={e => setNewTx(prev => ({...prev, amount: e.target.value}))}
+                          className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2.5"
+                        />
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">Tipo</label>
+                        <select
+                          value={newTx.type}
+                          onChange={e => setNewTx(prev => ({...prev, type: e.target.value}))}
+                          className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2.5"
+                        >
+                          <option value="gasto">Gasto / Salida</option>
+                          <option value="ingreso">Ingreso / Entrada</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">Categoría</label>
+                        <select
+                          value={newTx.category}
+                          onChange={e => setNewTx(prev => ({...prev, category: e.target.value}))}
+                          className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2.5 text-zinc-300"
+                        >
+                          {['Alimentación', 'Vivienda', 'Transporte', 'Suscripciones', 'Servicios', 'Otros', 'Ingresos', 'Educación', 'Salud', 'Deudas'].map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">Fecha</label>
+                        <input
+                          type="date"
+                          value={newTx.date}
+                          onChange={e => setNewTx(prev => ({...prev, date: e.target.value}))}
+                          className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2"
+                        />
+                      </div>
+                    </div>
+
                     <div>
-                      <label className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">Categoría</label>
+                      <label className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">Medio de Pago / Cuenta</label>
                       <select
-                        value={newTx.category}
-                        onChange={e => setNewTx(prev => ({...prev, category: e.target.value}))}
-                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2.5 text-zinc-300"
+                        value={newTx.account}
+                        onChange={e => setNewTx(prev => ({...prev, account: e.target.value}))}
+                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2.5 text-zinc-350"
                       >
-                        {['Alimentación', 'Vivienda', 'Transporte', 'Suscripciones', 'Servicios', 'Otros', 'Ingresos', 'Educación', 'Salud', 'Deudas'].map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
+                        <option value="Efectivo">Efectivo</option>
+                        
+                        {/* Dynamic Bank Account outputs as Debit / Transfer */}
+                        {bankAccounts.map(ba => (
+                          <option key={`opt-ba-deb-${ba.id}`} value={`Tarjeta de Débito - ${ba.name}`}>
+                            Débito - {ba.name} (Saldo: {user.currency}{ba.balance.toLocaleString()})
+                          </option>
+                        ))}
+                        {bankAccounts.map(ba => (
+                          <option key={`opt-ba-tran-${ba.id}`} value={`Transferencia - ${ba.name}`}>
+                            Transferencia - {ba.name} (Saldo: {user.currency}{ba.balance.toLocaleString()})
+                          </option>
+                        ))}
+
+                        {/* Dynamic Credit Card outputs */}
+                        {creditCards.map(c => (
+                          <option key={`opt-cc-${c.id}`} value={`Tarjeta de Crédito - ${c.name}`}>
+                            Crédito - {c.name} (Corte {c.closingDay} • Pago {c.paymentDay})
+                          </option>
                         ))}
                       </select>
                     </div>
 
-                    <div>
-                      <label className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">Fecha</label>
-                      <input
-                        type="date"
-                        value={newTx.date}
-                        onChange={e => setNewTx(prev => ({...prev, date: e.target.value}))}
-                        className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">Medio de Pago / Cuenta</label>
-                    <select
-                      value={newTx.account}
-                      onChange={e => setNewTx(prev => ({...prev, account: e.target.value}))}
-                      className="w-full bg-zinc-950 text-xs border border-zinc-800 rounded-lg p-2.5 text-zinc-350"
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 bg-zinc-800 hover:bg-zinc-755 border border-zinc-700 text-amber-500 font-semibold rounded-lg text-xs tracking-wider cursor-pointer transition-all"
                     >
-                      <option value="Efectivo">Efectivo</option>
-                      
-                      {/* Dynamic Bank Account outputs as Debit / Transfer */}
-                      {bankAccounts.map(ba => (
-                        <option key={`opt-ba-deb-${ba.id}`} value={`Tarjeta de Débito - ${ba.name}`}>
-                          Débito - {ba.name} (Saldo: {user.currency}{ba.balance.toLocaleString()})
-                        </option>
-                      ))}
-                      {bankAccounts.map(ba => (
-                        <option key={`opt-ba-tran-${ba.id}`} value={`Transferencia - ${ba.name}`}>
-                          Transferencia - {ba.name} (Saldo: {user.currency}{ba.balance.toLocaleString()})
-                        </option>
-                      ))}
+                      Agregar Movimiento
+                    </button>
+                  </form>
+                </div>
 
-                      {/* Dynamic Credit Card outputs */}
-                      {creditCards.map(c => (
-                        <option key={`opt-cc-${c.id}`} value={`Tarjeta de Crédito - ${c.name}`}>
-                          Crédito - {c.name} (Corte {c.closingDay} • Pago {c.paymentDay})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                {/* DEDICATED CARGA RÁPIDA MENSUAL CARD */}
+                <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-5 shadow-lg">
+                  <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1 flex items-center gap-2">
+                    <CalendarDays className="w-4 h-4 text-amber-500" />
+                    <span>Carga Rápida por Mes</span>
+                  </h3>
+                  <p className="text-[10px] text-zinc-500 leading-relaxed mb-4">
+                    Ingresa ingresos y gastos consolidados para meses anteriores o futuros rápidamente (por ejemplo: enero 2026) sin registrar cada ticket.
+                  </p>
 
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 bg-zinc-800 hover:bg-zinc-755 border border-zinc-700 text-amber-500 font-semibold rounded-lg text-xs tracking-wider cursor-pointer transition-all"
-                  >
-                    Agregar Movimiento
-                  </button>
-                </form>
+                  <form onSubmit={handleAddMonthlyConsolidatedTotals} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="block text-[10px] text-zinc-450 uppercase font-bold tracking-wider mb-1">Año</label>
+                        <input
+                          required
+                          type="number"
+                          min="2020"
+                          max="2035"
+                          value={newMonthlyTotals.year}
+                          onChange={e => setNewMonthlyTotals(prev => ({...prev, year: parseInt(e.target.value) || 2026}))}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-white font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] text-zinc-450 uppercase font-bold tracking-wider mb-1">Mes</label>
+                        <select
+                          value={newMonthlyTotals.month}
+                          onChange={e => setNewMonthlyTotals(prev => ({...prev, month: parseInt(e.target.value) || 1}))}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-zinc-300"
+                        >
+                          <option value="1">Enero</option>
+                          <option value="2">Febrero</option>
+                          <option value="3">Marzo</option>
+                          <option value="4">Abril</option>
+                          <option value="5">Mayo</option>
+                          <option value="6">Junio</option>
+                          <option value="7">Julio</option>
+                          <option value="8">Agosto</option>
+                          <option value="9">Septiembre</option>
+                          <option value="10">Octubre</option>
+                          <option value="11">Noviembre</option>
+                          <option value="12">Diciembre</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="block text-[10px] text-zinc-450 uppercase font-bold tracking-wider mb-1">Ganado ({user.currency})</label>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="Ingresos"
+                          value={newMonthlyTotals.income}
+                          onChange={e => setNewMonthlyTotals(prev => ({...prev, income: e.target.value}))}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-emerald-400 font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] text-zinc-450 uppercase font-bold tracking-wider mb-1">Gastado ({user.currency})</label>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="Egresos"
+                          value={newMonthlyTotals.expense}
+                          onChange={e => setNewMonthlyTotals(prev => ({...prev, expense: e.target.value}))}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-amber-500 font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="text-xs">
+                      <label className="block text-[10px] text-zinc-450 uppercase font-bold tracking-wider mb-1">Cuenta de Balance</label>
+                      <select
+                        value={newMonthlyTotals.account}
+                        onChange={e => setNewMonthlyTotals(prev => ({...prev, account: e.target.value}))}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-zinc-300"
+                      >
+                        <option value="Efectivo">Efectivo</option>
+                        {bankAccounts.map(ba => (
+                          <option key={`mta-deb-${ba.id}`} value={`Tarjeta de Débito - ${ba.name}`}>
+                            Débito - {ba.name} (Saldo: {user.currency}{ba.balance.toLocaleString()})
+                          </option>
+                        ))}
+                        {bankAccounts.map(ba => (
+                          <option key={`mta-tran-${ba.id}`} value={`Transferencia - ${ba.name}`}>
+                            Transferencia - {ba.name} (Saldo: {user.currency}{ba.balance.toLocaleString()})
+                          </option>
+                        ))}
+                        {creditCards.map(c => (
+                          <option key={`mta-cc-${c.id}`} value={`Tarjeta de Crédito - ${c.name}`}>
+                            Crédito - {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold rounded-lg text-xs uppercase cursor-pointer transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Ingresar Datos del Mes</span>
+                    </button>
+                  </form>
+                </div>
               </div>
 
               <div className="lg:col-span-8 bg-zinc-900/80 border border-zinc-800 rounded-2xl p-5">
@@ -4615,6 +4882,30 @@ Hemos analizado tu perfil financiero inicial y tus registros. Actualmente muestr
                 <div className="pt-4 border-t border-zinc-800/60 text-center text-zinc-500 text-[10px] mt-4 lg:mt-0 font-mono">
                   SISTEMA PARÁMETROS V1.2 • AI STUDIO BUILD
                 </div>
+              </div>
+            </div>
+
+            {/* THIRD ROW: CRITICAL ACTION BOARD */}
+            <div className="bg-zinc-900 border border-red-955/40 rounded-2xl p-5 shadow-xl">
+              <div className="flex items-center gap-2 mb-3">
+                <Trash2 className="w-5 h-5 text-red-500 animate-pulse" />
+                <div>
+                  <h3 className="text-sm font-semibold text-red-400">Zona de Peligro / Mantenimiento de Datos</h3>
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mt-0.5">Wipe Completo de Registros y Archivo Histórico</p>
+                </div>
+              </div>
+              <p className="text-xs text-zinc-400 leading-relaxed mb-4">
+                ¿Listo para tu contabilidad real? Esta acción eliminará permanentemente todas las transacciones de muestra, metas, tarjetas de crédito y saldos guardados localmente para brindarte un lienzo totalmente limpio.
+              </p>
+              <div className="max-w-xs">
+                <button
+                  type="button"
+                  onClick={handleClearAllDataForcefully}
+                  className="w-full py-2.5 bg-red-950/20 hover:bg-red-900/40 text-red-550 hover:text-red-450 border border-red-905/30 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Borrar Todo y Comenzar de Cero</span>
+                </button>
               </div>
             </div>
           </div>
